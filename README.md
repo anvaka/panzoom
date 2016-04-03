@@ -6,6 +6,7 @@ Pan and zoom an SVG scene.
 
  * [Standalone page](https:////anvaka.github.io/panzoom/demo/index.html) - this repository
  * [YASIV](http://www.yasiv.com/#/Search?q=algorithms&category=Books&lang=US) - my hobby project
+ * [SVG Tiger](https://jsfiddle.net/uwxcmbyg/) - js fiddle
 
 # Usage
 

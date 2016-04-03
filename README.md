@@ -21,13 +21,13 @@ Or download from CDN:
 https://cdn.rawgit.com/anvaka/panzoom/v1.0.0/dist/panzoom.min.js
 ```
 
-If you download from CDN the library will be available under `panzoom` globla name.
+If you download from CDN the library will be available under `panzoom` global name.
 
 ``` html
 <!-- this is your html file with svg -->
 <body>
   <svg>
-    <-- this is your draggable root -->
+    <!-- this is the draggable root -->
     <g id='scene'> 
   <circle cx='10' cy='10' r='5' fill='pink'></circle>
     </g>

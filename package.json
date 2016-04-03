@@ -1,0 +1,20 @@
+{
+  "name": "panzoom",
+  "version": "1.0.0",
+  "description": "Pan and zoom SVG elements",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "svg",
+    "pan",
+    "zoom"
+  ],
+  "author": "Andrei Kashcha",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anvaka/panzoom"
+  }
+}

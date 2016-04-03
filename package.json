@@ -4,7 +4,8 @@
   "description": "Pan and zoom SVG elements",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "browserify -s panzoom ./index.js > dist/panzoom.js && uglifyjs dist/panzoom.js > dist/panzoom.min.js"
   },
   "keywords": [
     "svg",
@@ -16,5 +17,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/anvaka/panzoom"
+  },
+  "dependencies": {
+    "wheel": "0.0.4"
   }
 }

@@ -29,7 +29,7 @@ If you download from CDN the library will be available under `panzoom` global na
   <svg>
     <!-- this is the draggable root -->
     <g id='scene'> 
-  <circle cx='10' cy='10' r='5' fill='pink'></circle>
+      <circle cx='10' cy='10' r='5' fill='pink'></circle>
     </g>
   </svg>
 </body>
@@ -45,6 +45,8 @@ var scene = document.getElementById('scene')
 
 // and forward it it to panzoom.
 panzoom(scene)
+
+// You can visit https://jsfiddle.net/djL2fazo/ to see this demo in action
 ```
 
 # license

@@ -46,9 +46,23 @@ var scene = document.getElementById('scene')
 
 // and forward it it to panzoom.
 panzoom(scene)
-
-// You can visit https://jsfiddle.net/djL2fazo/ to see this demo in action
 ```
+
+If your use case requires dynamic behavior (i.e. you want to make a scene not 
+draggable anymore, or even completely delete an SVG element) make sure to call
+`dispose()` method:
+
+``` js
+var instance = panzoom(scene)
+// do work
+// ...
+// then at some point you decide you don't need this anymore:
+instance.dispose()
+```
+
+This will make sure that all event handlers are cleared and you are not leaking
+memory
+
 
 # license
 

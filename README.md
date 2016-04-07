@@ -63,6 +63,20 @@ instance.dispose()
 This will make sure that all event handlers are cleared and you are not leaking
 memory
 
+When user starts/ends dragging the scene, the scene will fire `panstart`/`panend`
+events. By default they will bubble up, so you can catch them any time you want:
+
+```
+document.body.addEventListener('panstart', function(e) {
+  console.log('pan start', e);
+}, true);
+
+document.body.addEventListener('panend', function(e) {
+  console.log('pan end', e);
+}, true);
+```
+
+See [JSFiddle](https://jsfiddle.net/uwxcmbyg/1/) console for a demo.
 
 # license
 

@@ -48,7 +48,12 @@ function createPanZoom(svgElement) {
   listenForEvents()
 
   return {
-    dispose: dispose
+    dispose: dispose,
+    moveBy: internalMoveBy
+  }
+
+  function internalMoveBy(dx, dy) {
+    moveBy(svgElement, dx, dy)
   }
 
   function scroll(x, y) {

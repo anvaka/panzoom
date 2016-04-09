@@ -44,16 +44,60 @@ function createPanZoom(svgElement) {
   var prevDragStart
 
   var smoothScroll = kinetic(svgElement, scroll)
+  var previousAnimation
 
   listenForEvents()
 
   return {
     dispose: dispose,
-    moveBy: internalMoveBy
+    moveBy: internalMoveBy,
+    centerOn: centerOn
   }
 
-  function internalMoveBy(dx, dy) {
-    moveBy(svgElement, dx, dy)
+  function centerOn(ui) {
+    var parent = ui.ownerSVGElement
+    if (!parent) throw new Error('ui element is required to be within the scene')
+
+    var clientRect = ui.getBoundingClientRect()
+    var cx = clientRect.left + clientRect.width/2
+    var cy = clientRect.top + clientRect.height/2
+
+    var container = parent.getBoundingClientRect()
+    var dx = container.width/2 - cx
+    var dy = container.height/2 - cy
+
+    internalMoveBy(dx, dy, true)
+  }
+
+  function internalMoveBy(dx, dy, animate) {
+    if (!animate) {
+      moveBy(svgElement, dx, dy)
+      return
+    }
+    if (previousAnimation) window.cancelAnimationFrame(previousAnimation)
+    var frame = 0
+    var lastX = 0
+    var lastY = 0
+
+    previousAnimation = window.requestAnimationFrame(render)
+
+    function render() {
+      var t = getTime(frame++, 800)
+      var tx = dx * t
+      var ty = dy * t
+      moveBy(svgElement, tx - lastX, ty - lastY)
+      lastX = tx
+      lastY = ty
+      previousAnimation = t < 1 ? window.requestAnimationFrame(render) : 0
+    }
+  }
+
+  function getTime(current, duration) {
+    var lastFrame = duration * 6/100
+    var x = current/(lastFrame/2)
+    if (x < 1) return 1/2 * x * x * x
+    x -= 2
+    return 1/2*(x*x*x + 2)
   }
 
   function scroll(x, y) {
@@ -118,7 +162,7 @@ function createPanZoom(svgElement) {
 
       mouseX = touch.clientX
       mouseY = touch.clientY
-      moveBy(svgElement, dx, dy)
+      internalMoveBy(dx, dy)
     } else if (e.touches.length === 2) {
       // it's a zoom, let's find direction
       var t1 = e.touches[0]
@@ -203,7 +247,7 @@ function createPanZoom(svgElement) {
 
     mouseX = e.clientX
     mouseY = e.clientY
-    moveBy(svgElement, dx, dy)
+    internalMoveBy(dx, dy)
   }
 
   function onMouseUp() {

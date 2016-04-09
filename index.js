@@ -3,6 +3,7 @@
  * Allows to drag and zoom svg elements
  */
 var wheel = require('wheel')
+var animate = require('amator');
 var zoomTo = require('./lib/zoomTo.js')
 var kinetic = require('./lib/kinetic.js')
 var moveBy = require('./lib/moveBy.js')
@@ -69,35 +70,27 @@ function createPanZoom(svgElement) {
     internalMoveBy(dx, dy, true)
   }
 
-  function internalMoveBy(dx, dy, animate) {
-    if (!animate) {
+  function internalMoveBy(dx, dy, smooth) {
+    if (!smooth) {
       moveBy(svgElement, dx, dy)
       return
     }
-    if (previousAnimation) window.cancelAnimationFrame(previousAnimation)
-    var frame = 0
+
+    if (previousAnimation) previousAnimation.cancel()
+
+    var from = { x: 0, y: 0 }
+    var to = { x: dx, y : dy }
     var lastX = 0
     var lastY = 0
 
-    previousAnimation = window.requestAnimationFrame(render)
+    previousAnimation = animate(from, to, {
+      step: function(v) {
+        moveBy(svgElement, v.x - lastX, v.y - lastY)
 
-    function render() {
-      var t = getTime(frame++, 800)
-      var tx = dx * t
-      var ty = dy * t
-      moveBy(svgElement, tx - lastX, ty - lastY)
-      lastX = tx
-      lastY = ty
-      previousAnimation = t < 1 ? window.requestAnimationFrame(render) : 0
-    }
-  }
-
-  function getTime(current, duration) {
-    var lastFrame = duration * 6/100
-    var x = current/(lastFrame/2)
-    if (x < 1) return 1/2 * x * x * x
-    x -= 2
-    return 1/2*(x*x*x + 2)
+        lastX = v.x
+        lastY = v.y
+      }
+    })
   }
 
   function scroll(x, y) {

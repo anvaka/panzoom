@@ -78,6 +78,24 @@ document.body.addEventListener('panend', function(e) {
 
 See [JSFiddle](https://jsfiddle.net/uwxcmbyg/1/) console for a demo.
 
+## Ignore mouse wheel
+
+Sometimes zooming interferes with scrolling. If you want to alleviate it you
+can provide a custom filter, which will allow zooming only when modifier key is
+down. E.g.
+
+``` js
+panzoom(document.getElementById('g4'), {
+  beforeWheel: function(e) {
+    // allow wheel-zoom only if altKey is down. Otherwise - ignore
+    var shouldIgnore = !e.altKey;
+    return shouldIgnore;
+  }
+});
+```
+
+See [JSFiddle](https://jsfiddle.net/Laxq9jLu/) for the demo. The tiger will be
+zooomable only when `Alt` key is down.
 # license
 
 MIT

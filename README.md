@@ -66,7 +66,7 @@ memory
 When user starts/ends dragging the scene, the scene will fire `panstart`/`panend`
 events. By default they will bubble up, so you can catch them any time you want:
 
-```
+``` js
 document.body.addEventListener('panstart', function(e) {
   console.log('pan start', e);
 }, true);

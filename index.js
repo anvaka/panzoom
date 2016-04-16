@@ -14,7 +14,7 @@ var speed = 0.065
 
 module.exports = createPanZoom;
 
-function createPanZoom(svgElement) {
+function createPanZoom(svgElement, options) {
   var elementValid = (svgElement instanceof SVGElement)
 
   if (!elementValid) {
@@ -28,6 +28,10 @@ function createPanZoom(svgElement) {
       'Use its child instead (e.g. <g></g>). ' +
       'As of March 2016 only FireFox supported transform on the root element')
   }
+
+  options = options || {}
+
+  var beforeWheel = options.beforeWheel || noop
 
   var touchInProgress = false
 
@@ -265,7 +269,11 @@ function createPanZoom(svgElement) {
   }
 
   function onMouseWheel(e) {
+    // if client does not want to handle this event - just ignore the call
+    if (beforeWheel(e)) return
+
     smoothScroll.cancel()
+
     var scaleMultiplier = getScaleMultiplier(e.deltaY)
 
     if (scaleMultiplier !== 1) {
@@ -310,3 +318,5 @@ function disabled(e) {
   e.stopPropagation()
   return false
 }
+
+function noop() { }

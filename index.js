@@ -10,7 +10,7 @@ var moveBy = require('./lib/moveBy.js')
 var moveTo = require('./lib/moveTo.js')
 var createEvent = require('./lib/createEvent.js')
 
-var speed = 0.065
+var defaultZoomSpeed = 0.065
 
 module.exports = createPanZoom;
 
@@ -32,6 +32,7 @@ function createPanZoom(svgElement, options) {
   options = options || {}
 
   var beforeWheel = options.beforeWheel || noop
+  var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
 
   var touchInProgress = false
 

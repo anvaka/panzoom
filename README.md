@@ -96,6 +96,17 @@ panzoom(document.getElementById('g4'), {
 
 See [JSFiddle](https://jsfiddle.net/Laxq9jLu/) for the demo. The tiger will be
 zooomable only when `Alt` key is down.
+
+## Zoom Speed
+
+You can adjust how fast it zooms, by passing optional `zoomSpeed` argument:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  zoomSpeed: 0.065 // 6.5% per mouse wheel event
+});
+```
+
 # license
 
 MIT

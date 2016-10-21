@@ -57,7 +57,8 @@ function createPanZoom(svgElement, options) {
   return {
     dispose: dispose,
     moveBy: internalMoveBy,
-    centerOn: centerOn
+    centerOn: centerOn,
+    zoomTo: publicZoomTo
   }
 
   function centerOn(ui) {
@@ -281,6 +282,10 @@ function createPanZoom(svgElement, options) {
       zoomTo(svgElement, e.clientX, e.clientY, scaleMultiplier)
       e.preventDefault()
     }
+  }
+
+  function publicZoomTo(clientX, clientY, scaleMultiplier) {
+      zoomTo(svgElement, clientX, clientY, scaleMultiplier)
   }
 
   function getScaleMultiplier(delta) {

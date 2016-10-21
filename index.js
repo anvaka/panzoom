@@ -52,6 +52,8 @@ function createPanZoom(svgElement, options) {
   var smoothScroll = kinetic(svgElement, scroll)
   var previousAnimation
 
+  var multitouch
+
   listenForEvents()
 
   return {
@@ -129,7 +131,9 @@ function createPanZoom(svgElement, options) {
       e.stopPropagation()
       e.preventDefault()
 
-      pinchZoomLength = getPinchZoomLength(e.touches[1], e.touches[1])
+      pinchZoomLength = getPinchZoomLength(e.touches[0], e.touches[1])
+      multitouch  = true;
+      startTouchListenerIfNeeded()
     }
   }
 
@@ -141,6 +145,10 @@ function createPanZoom(svgElement, options) {
     mouseX = touch.clientX
     mouseY = touch.clientY
 
+    startTouchListenerIfNeeded()
+  }
+
+  function startTouchListenerIfNeeded() {
     if (!touchInProgress) {
       touchInProgress = true
       document.addEventListener('touchmove', handleTouchMove)
@@ -164,6 +172,7 @@ function createPanZoom(svgElement, options) {
       internalMoveBy(dx, dy)
     } else if (e.touches.length === 2) {
       // it's a zoom, let's find direction
+      multitouch = true;
       var t1 = e.touches[0]
       var t2 = e.touches[1]
       var currentPinchLength = getPinchZoomLength(t1, t2)
@@ -264,10 +273,11 @@ function createPanZoom(svgElement, options) {
   }
 
   function releaseTouches() {
-    document.removeEventListener('touchmove', handleTouchMove);
-    document.removeEventListener('touchend', handleTouchEnd);
-    document.removeEventListener('touchcancel', handleTouchEnd);
+    document.removeEventListener('touchmove', handleTouchMove)
+    document.removeEventListener('touchend', handleTouchEnd)
+    document.removeEventListener('touchcancel', handleTouchEnd)
     panstartFired = false
+    multitouch = false
   }
 
   function onMouseWheel(e) {
@@ -309,7 +319,8 @@ function createPanZoom(svgElement, options) {
 
   function triggerPanEnd() {
     if (panstartFired) {
-      smoothScroll.stop()
+      // we should never run smooth scrolling if it was multitouch (pinch zoom animation):
+      if (!multitouch) smoothScroll.stop()
       triggerEvent('panend')
     }
   }

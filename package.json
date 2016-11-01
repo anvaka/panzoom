@@ -1,6 +1,6 @@
 {
   "name": "panzoom",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Pan and zoom SVG elements",
   "main": "index.js",
   "scripts": {

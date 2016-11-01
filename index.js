@@ -81,8 +81,7 @@ function createPanZoom(svgElement, options) {
 
   function internalMoveBy(dx, dy, smooth) {
     if (!smooth) {
-      moveBy(svgElement, dx, dy)
-      return
+      return moveBy(svgElement, dx, dy)
     }
 
     if (previousAnimation) previousAnimation.cancel()
@@ -334,7 +333,7 @@ function createPanZoom(svgElement, options) {
   }
 
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
-      zoomTo(svgElement, clientX, clientY, scaleMultiplier)
+      return zoomTo(svgElement, clientX, clientY, scaleMultiplier)
   }
 
   function getScaleMultiplier(delta) {

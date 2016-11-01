@@ -29,6 +29,7 @@ function createPanZoom(svgElement, options) {
       'As of March 2016 only FireFox supported transform on the root element')
   }
 
+  owner.setAttribute('tabindex', 1); // TODO: not sure if this is really polite
   options = options || {}
 
   var beforeWheel = options.beforeWheel || noop
@@ -108,6 +109,7 @@ function createPanZoom(svgElement, options) {
   function dispose() {
     wheel.removeWheelListener(svgElement, onMouseWheel)
     owner.removeEventListener('mousedown', onMouseDown)
+    owner.removeEventListener('keydown', onKeyDown)
 
     smoothScroll.cancel()
 
@@ -120,7 +122,42 @@ function createPanZoom(svgElement, options) {
   function listenForEvents() {
     owner.addEventListener('mousedown', onMouseDown)
     owner.addEventListener('touchstart', onTouch)
+    owner.addEventListener('keydown', onKeyDown)
     wheel.addWheelListener(owner, onMouseWheel)
+  }
+
+  function onKeyDown(e) {
+    var x = 0, y = 0, z = 0
+    if (e.keyCode === 38) {
+      y = 1 // up
+    } else if (e.keyCode === 40) {
+      y = -1 // down
+    } else if (e.keyCode === 37) {
+      x = 1 // left
+    } else if (e.keyCode === 39) {
+      x = -1 // right
+    } else if (e.keyCode === 189 || e.keyCode === 109) { // DASH or SUBTRACT
+      z = 1 // `-` -  zoom out
+    } else if (e.keyCode === 187 || e.keyCode === 107) { // EQUAL SIGN or ADD
+      z = -1 // `=` - zoom in (equal sign on US layout is under `+`)
+    }
+
+    if (x || y) {
+      e.preventDefault()
+      e.stopPropagation()
+
+      var clientRect = owner.getBoundingClientRect()
+      var offset = Math.min(clientRect.width, clientRect.height)
+      // make it uniform
+      var dx = offset * 0.05 * x
+      var dy = offset * 0.05 * y
+      internalMoveBy(dx, dy)
+    }
+
+    if (z) {
+      var scaleMultiplier = getScaleMultiplier(z)
+      zoomTo(svgElement, owner.clientWidth/2, owner.clientHeight/2, scaleMultiplier)
+    }
   }
 
   function onTouch(e) {
@@ -158,7 +195,6 @@ function createPanZoom(svgElement, options) {
   }
 
   function handleTouchMove(e) {
-    triggerPanStart()
 
     if (e.touches.length === 1) {
       e.stopPropagation()
@@ -167,6 +203,9 @@ function createPanZoom(svgElement, options) {
       var dx = touch.clientX - mouseX
       var dy = touch.clientY - mouseY
 
+      if (dx !== 0 && dy !== 0) {
+        triggerPanStart()
+      }
       mouseX = touch.clientX
       mouseY = touch.clientY
       internalMoveBy(dx, dy)

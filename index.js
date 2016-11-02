@@ -4,14 +4,18 @@
  */
 var wheel = require('wheel')
 var animate = require('amator');
-var zoomTo = require('./lib/zoomTo.js')
+var zoomSvgElementByRatio = require('./lib/zoomByRatio.js')
+var zoomSvgElementToAbsoluteValue = require('./lib/zoomToAbsoluteValue.js');
 var kinetic = require('./lib/kinetic.js')
 var moveBy = require('./lib/moveBy.js')
 var moveTo = require('./lib/moveTo.js')
 var createEvent = require('./lib/createEvent.js')
 var preventTextSelection = require('./lib/textSlectionInterceptor.js')()
+var getTransform = require('./lib/getTransform.js')
 
 var defaultZoomSpeed = 0.065
+var defaultDoubleTapZoomSpeed = 1.75
+var doubleTapSpeedInMS = 300
 
 module.exports = createPanZoom;
 
@@ -36,6 +40,8 @@ function createPanZoom(svgElement, options) {
   var beforeWheel = options.beforeWheel || noop
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
 
+  var lastTouchEndTime = 0
+
   var touchInProgress = false
 
   // We only need to fire panstart when actual move happens
@@ -48,7 +54,7 @@ function createPanZoom(svgElement, options) {
   var pinchZoomLength
 
   var smoothScroll = kinetic(svgElement, scroll)
-  var previousAnimation
+  var moveByAnimation
 
   var multitouch
 
@@ -58,7 +64,8 @@ function createPanZoom(svgElement, options) {
     dispose: dispose,
     moveBy: internalMoveBy,
     centerOn: centerOn,
-    zoomTo: publicZoomTo
+    zoomTo: publicZoomTo,
+    zoomAbs: zoomToAbsoluteValue
   }
 
   function centerOn(ui) {
@@ -81,14 +88,14 @@ function createPanZoom(svgElement, options) {
       return moveBy(svgElement, dx, dy)
     }
 
-    if (previousAnimation) previousAnimation.cancel()
+    if (moveByAnimation) moveByAnimation.cancel()
 
     var from = { x: 0, y: 0 }
     var to = { x: dx, y : dy }
     var lastX = 0
     var lastY = 0
 
-    previousAnimation = animate(from, to, {
+    moveByAnimation = animate(from, to, {
       step: function(v) {
         moveBy(svgElement, v.x - lastX, v.y - lastY)
 
@@ -145,10 +152,13 @@ function createPanZoom(svgElement, options) {
       e.stopPropagation()
 
       var clientRect = owner.getBoundingClientRect()
+      // movement speed should be the same in both X and Y direction:
       var offset = Math.min(clientRect.width, clientRect.height)
-      // make it uniform
-      var dx = offset * 0.05 * x
-      var dy = offset * 0.05 * y
+      var moveSpeedRatio = 0.05
+      var dx = offset * moveSpeedRatio * x
+      var dy = offset * moveSpeedRatio * y
+
+      // TODO: currently we do not animate this. It could be better to have animation
       internalMoveBy(dx, dy)
     }
 
@@ -239,6 +249,12 @@ function createPanZoom(svgElement, options) {
       mouseX = e.touches[0].clientX
       mouseY = e.touches[0].clientY
     } else {
+      var now = new Date()
+      if (now - lastTouchEndTime < doubleTapSpeedInMS) {
+        smoothZoom(mouseX, mouseY, defaultDoubleTapZoomSpeed)
+      }
+      lastTouchEndTime = now
+
       touchInProgress = false
       triggerPanEnd()
       releaseTouches()
@@ -251,9 +267,8 @@ function createPanZoom(svgElement, options) {
   }
 
   function onDoubleClick(e) {
-    var scaleMultiplier = 2
-    // TODO: animate
-    publicZoomTo(e.clientX, e.clientY, scaleMultiplier)
+    smoothZoom(e.clientX, e.clientY, defaultDoubleTapZoomSpeed)
+
     e.preventDefault()
     e.stopPropagation()
   }
@@ -294,6 +309,7 @@ function createPanZoom(svgElement, options) {
 
     mouseX = e.clientX
     mouseY = e.clientY
+
     internalMoveBy(dx, dy)
   }
 
@@ -331,9 +347,37 @@ function createPanZoom(svgElement, options) {
     }
   }
 
+  function zoomToAbsoluteValue(clientX, clientY, scale) {
+      return zoomSvgElementToAbsoluteValue(svgElement, clientX, clientY, scale)
+  }
+
+  function smoothZoom(clientX, clientY, scaleMultiplier) {
+      var transform = getTransform(svgElement)
+      var fromValue = transform.matrix.a
+      var from = {scale: fromValue}
+      var to = {scale: scaleMultiplier * fromValue}
+
+      animate(from, to, {
+        step: function(v) {
+          zoomToAbsoluteValue(clientX, clientY, v.scale)
+        }
+      })
+  }
+
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
       triggerEvent('zoom')
-      return zoomTo(svgElement, clientX, clientY, scaleMultiplier)
+
+      // var transform = getTransform(svgElement)
+      // var fromValue = transform.matrix.a
+      // var from = {scale: fromValue}
+      // var to = {scale: scaleMultiplier * fromValue}
+      //
+      // animate(from, to, {
+      //   step: function(v) {
+      //     zoomToAbsoluteValue(clientX, clientY, v.scale)
+      //   }
+      // })
+      return zoomSvgElementByRatio(svgElement, clientX, clientY, scaleMultiplier)
   }
 
   function getScaleMultiplier(delta) {

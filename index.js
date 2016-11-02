@@ -55,6 +55,7 @@ function createPanZoom(svgElement, options) {
 
   var smoothScroll = kinetic(svgElement, scroll)
   var moveByAnimation
+  var zoomToAnimation
 
   var multitouch
 
@@ -106,6 +107,7 @@ function createPanZoom(svgElement, options) {
   }
 
   function scroll(x, y) {
+    triggerEvent('pan')
     moveTo(svgElement, x, y)
   }
 
@@ -357,7 +359,12 @@ function createPanZoom(svgElement, options) {
       var from = {scale: fromValue}
       var to = {scale: scaleMultiplier * fromValue}
 
-      animate(from, to, {
+      cancelZoomAnimation()
+
+      // TODO: should consolidate this and publicZoomTo
+      triggerEvent('zoom')
+
+      zoomToAnimation = animate(from, to, {
         step: function(v) {
           zoomToAbsoluteValue(clientX, clientY, v.scale)
         }
@@ -367,17 +374,15 @@ function createPanZoom(svgElement, options) {
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
       triggerEvent('zoom')
 
-      // var transform = getTransform(svgElement)
-      // var fromValue = transform.matrix.a
-      // var from = {scale: fromValue}
-      // var to = {scale: scaleMultiplier * fromValue}
-      //
-      // animate(from, to, {
-      //   step: function(v) {
-      //     zoomToAbsoluteValue(clientX, clientY, v.scale)
-      //   }
-      // })
+      cancelZoomAnimation()
       return zoomSvgElementByRatio(svgElement, clientX, clientY, scaleMultiplier)
+  }
+
+  function cancelZoomAnimation() {
+      if (zoomToAnimation) {
+          zoomToAnimation.cancel()
+          zoomToAnimation = null
+      }
   }
 
   function getScaleMultiplier(delta) {

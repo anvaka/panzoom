@@ -9,6 +9,7 @@ var kinetic = require('./lib/kinetic.js')
 var moveBy = require('./lib/moveBy.js')
 var moveTo = require('./lib/moveTo.js')
 var createEvent = require('./lib/createEvent.js')
+var preventTextSelection = require('./lib/textSlectionInterceptor.js')()
 
 var defaultZoomSpeed = 0.065
 
@@ -45,10 +46,6 @@ function createPanZoom(svgElement, options) {
   var mouseY
 
   var pinchZoomLength
-
-  var dragObject
-  var prevSelectStart
-  var prevDragStart
 
   var smoothScroll = kinetic(svgElement, scroll)
   var previousAnimation
@@ -109,6 +106,7 @@ function createPanZoom(svgElement, options) {
     wheel.removeWheelListener(svgElement, onMouseWheel)
     owner.removeEventListener('mousedown', onMouseDown)
     owner.removeEventListener('keydown', onKeyDown)
+    owner.removeEventListener('dblclick', onDoubleClick)
 
     smoothScroll.cancel()
 
@@ -120,6 +118,7 @@ function createPanZoom(svgElement, options) {
 
   function listenForEvents() {
     owner.addEventListener('mousedown', onMouseDown)
+    owner.addEventListener('dblclick', onDoubleClick)
     owner.addEventListener('touchstart', onTouch)
     owner.addEventListener('keydown', onKeyDown)
     wheel.addWheelListener(owner, onMouseWheel)
@@ -155,7 +154,7 @@ function createPanZoom(svgElement, options) {
 
     if (z) {
       var scaleMultiplier = getScaleMultiplier(z)
-      zoomTo(svgElement, owner.clientWidth/2, owner.clientHeight/2, scaleMultiplier)
+      publicZoomTo(owner.clientWidth/2, owner.clientHeight/2, scaleMultiplier)
     }
   }
 
@@ -227,7 +226,7 @@ function createPanZoom(svgElement, options) {
       mouseX = (t1.clientX + t2.clientX)/2
       mouseY = (t1.clientY + t2.clientY)/2
 
-      zoomTo(svgElement, mouseX, mouseY, scaleMultiplier)
+      publicZoomTo(mouseX, mouseY, scaleMultiplier)
 
       pinchZoomLength = currentPinchLength
       e.stopPropagation()
@@ -251,10 +250,18 @@ function createPanZoom(svgElement, options) {
       (finger1.clientY - finger2.clientY) * (finger1.clientY - finger2.clientY)
   }
 
+  function onDoubleClick(e) {
+    var scaleMultiplier = 2
+    // TODO: animate
+    publicZoomTo(e.clientX, e.clientY, scaleMultiplier)
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
   function onMouseDown(e) {
     if (touchInProgress) {
       // modern browsers will fire mousedown for touch events too
-      // we do not want this, since touch is handled separately.
+      // we do not want this: touch is handled separately.
       e.stopPropagation()
       return false;
     }
@@ -271,13 +278,7 @@ function createPanZoom(svgElement, options) {
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup', onMouseUp)
 
-    // prevent text selection
-    dragObject = e.target || e.srcElement
-    prevSelectStart = window.document.onselectstart
-    prevDragStart = window.document.ondragstart
-
-    window.document.onselectstart = disabled
-    dragObject.ondragstart = disabled
+    preventTextSelection.capture(e.target || e.srcElement)
 
     return false
   }
@@ -297,9 +298,7 @@ function createPanZoom(svgElement, options) {
   }
 
   function onMouseUp() {
-    window.document.onselectstart = prevSelectStart
-    if (dragObject) dragObject.ondragstart = prevDragStart
-
+    preventTextSelection.release()
     triggerPanEnd()
     releaseDocumentMouse()
   }
@@ -327,12 +326,13 @@ function createPanZoom(svgElement, options) {
     var scaleMultiplier = getScaleMultiplier(e.deltaY)
 
     if (scaleMultiplier !== 1) {
-      zoomTo(svgElement, e.clientX, e.clientY, scaleMultiplier)
+      publicZoomTo(e.clientX, e.clientY, scaleMultiplier)
       e.preventDefault()
     }
   }
 
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
+      triggerEvent('zoom')
       return zoomTo(svgElement, clientX, clientY, scaleMultiplier)
   }
 
@@ -369,9 +369,5 @@ function createPanZoom(svgElement, options) {
   }
 }
 
-function disabled(e) {
-  e.stopPropagation()
-  return false
-}
 
 function noop() { }

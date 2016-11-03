@@ -67,7 +67,13 @@ function createPanZoom(svgElement, options) {
     moveBy: internalMoveBy,
     centerOn: centerOn,
     zoomTo: publicZoomTo,
-    zoomAbs: zoomToAbsoluteValue
+    zoomAbs: zoomToAbsoluteValue,
+    getTransform: getTransformModel
+  }
+
+  function getTransformModel() {
+    // TODO: should this be read only?
+    return transform
   }
 
   function getRect() {
@@ -94,7 +100,7 @@ function createPanZoom(svgElement, options) {
     frameAnimation = window.requestAnimationFrame(frame)
   }
 
-  function zoomSvgElementByRatio(clientX, clientY, ratio) {
+  function zoomByRatio(clientX, clientY, ratio) {
     var parentCTM = owner.getScreenCTM()
 
     var x = clientX * parentCTM.a - parentCTM.e
@@ -159,6 +165,7 @@ function createPanZoom(svgElement, options) {
   }
 
   function scroll(x, y) {
+    cancelZoomAnimation()
     triggerEvent('pan')
     moveTo(x, y)
   }
@@ -329,6 +336,7 @@ function createPanZoom(svgElement, options) {
       if (now - lastTouchEndTime < doubleTapSpeedInMS) {
         smoothZoom(mouseX, mouseY, defaultDoubleTapZoomSpeed)
       }
+
       lastTouchEndTime = now
 
       touchInProgress = false
@@ -429,6 +437,7 @@ function createPanZoom(svgElement, options) {
       var from = {scale: fromValue}
       var to = {scale: scaleMultiplier * fromValue}
 
+      smoothScroll.cancel()
       cancelZoomAnimation()
 
       // TODO: should consolidate this and publicZoomTo
@@ -444,8 +453,9 @@ function createPanZoom(svgElement, options) {
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
       triggerEvent('zoom')
 
+      smoothScroll.cancel()
       cancelZoomAnimation()
-      return zoomSvgElementByRatio(clientX, clientY, scaleMultiplier)
+      return zoomByRatio(clientX, clientY, scaleMultiplier)
   }
 
   function cancelZoomAnimation() {

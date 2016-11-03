@@ -4,14 +4,11 @@
  */
 var wheel = require('wheel')
 var animate = require('amator');
-var zoomSvgElementByRatio = require('./lib/zoomByRatio.js')
-var zoomSvgElementToAbsoluteValue = require('./lib/zoomToAbsoluteValue.js');
 var kinetic = require('./lib/kinetic.js')
-var moveBy = require('./lib/moveBy.js')
-var moveTo = require('./lib/moveTo.js')
 var createEvent = require('./lib/createEvent.js')
 var preventTextSelection = require('./lib/textSlectionInterceptor.js')()
-var getTransform = require('./lib/getTransform.js')
+var getTransform = require('./lib/getSvgTransformMatrix.js')
+var Transform = require('./lib/transform.js');
 
 var defaultZoomSpeed = 0.065
 var defaultDoubleTapZoomSpeed = 1.75
@@ -22,10 +19,14 @@ module.exports = createPanZoom;
 function createPanZoom(svgElement, options) {
   var elementValid = (svgElement instanceof SVGElement)
 
+  var isDirty = false
+  var transform = new Transform()
+
   if (!elementValid) {
     throw new Error('svg element is required for svg.panzoom to work')
   }
 
+  var frameAnimation
   var owner = svgElement.ownerSVGElement
   if (!owner) {
     throw new Error(
@@ -53,7 +54,7 @@ function createPanZoom(svgElement, options) {
 
   var pinchZoomLength
 
-  var smoothScroll = kinetic(svgElement, scroll)
+  var smoothScroll = kinetic(getRect, scroll)
   var moveByAnimation
   var zoomToAnimation
 
@@ -67,6 +68,57 @@ function createPanZoom(svgElement, options) {
     centerOn: centerOn,
     zoomTo: publicZoomTo,
     zoomAbs: zoomToAbsoluteValue
+  }
+
+  function getRect() {
+    return {
+      x: transform.x,
+      y: transform.y
+    }
+  }
+
+  function moveBy(dx, dy) {
+    transform.x += dx
+    transform.y += dy
+    makeDirty()
+  }
+
+  function moveTo(x, y) {
+    transform.x = x
+    transform.y = y
+    makeDirty()
+  }
+
+  function makeDirty() {
+    isDirty = true
+    frameAnimation = window.requestAnimationFrame(frame)
+  }
+
+  function zoomSvgElementByRatio(clientX, clientY, ratio) {
+    var parentCTM = owner.getScreenCTM()
+
+    var x = clientX * parentCTM.a - parentCTM.e
+    var y = clientY * parentCTM.a - parentCTM.f
+
+    transform.x = x - ratio * (x - transform.x)
+    transform.y = y - ratio * (y - transform.y)
+    transform.scale *= ratio
+
+    makeDirty()
+  }
+
+  function zoomToAbsoluteValue(clientX, clientY, zoomLevel) {
+    var parentCTM = owner.getScreenCTM()
+
+    var x = clientX * parentCTM.a - parentCTM.e
+    var y = clientY * parentCTM.a - parentCTM.f
+
+    var ratio = zoomLevel / transform.scale
+    transform.x = x - ratio * (x - transform.x)
+    transform.y = y - ratio * (y - transform.y)
+    transform.scale = zoomLevel
+
+    makeDirty()
   }
 
   function centerOn(ui) {
@@ -86,7 +138,7 @@ function createPanZoom(svgElement, options) {
 
   function internalMoveBy(dx, dy, smooth) {
     if (!smooth) {
-      return moveBy(svgElement, dx, dy)
+      return moveBy(dx, dy)
     }
 
     if (moveByAnimation) moveByAnimation.cancel()
@@ -98,7 +150,7 @@ function createPanZoom(svgElement, options) {
 
     moveByAnimation = animate(from, to, {
       step: function(v) {
-        moveBy(svgElement, v.x - lastX, v.y - lastY)
+        moveBy(v.x - lastX, v.y - lastY)
 
         lastX = v.x
         lastY = v.y
@@ -108,7 +160,7 @@ function createPanZoom(svgElement, options) {
 
   function scroll(x, y) {
     triggerEvent('pan')
-    moveTo(svgElement, x, y)
+    moveTo(x, y)
   }
 
   function dispose() {
@@ -116,6 +168,10 @@ function createPanZoom(svgElement, options) {
     owner.removeEventListener('mousedown', onMouseDown)
     owner.removeEventListener('keydown', onKeyDown)
     owner.removeEventListener('dblclick', onDoubleClick)
+    if (frameAnimation) {
+      window.cancelAnimationFrame(frameAnimation)
+      frameAnimation = 0;
+    }
 
     smoothScroll.cancel()
 
@@ -131,6 +187,24 @@ function createPanZoom(svgElement, options) {
     owner.addEventListener('touchstart', onTouch)
     owner.addEventListener('keydown', onKeyDown)
     wheel.addWheelListener(owner, onMouseWheel)
+
+    makeDirty()
+  }
+
+
+  function frame() {
+    if (isDirty) applyTransform()
+  }
+
+  function applyTransform() {
+    isDirty = false
+
+    svgElement.setAttribute('transform', 'matrix(' +
+      transform.scale + ' 0 0 ' +
+      transform.scale + ' ' +
+      transform.x + ' ' + transform.y + ')')
+
+    frameAnimation = 0
   }
 
   function onKeyDown(e) {
@@ -349,10 +423,6 @@ function createPanZoom(svgElement, options) {
     }
   }
 
-  function zoomToAbsoluteValue(clientX, clientY, scale) {
-      return zoomSvgElementToAbsoluteValue(svgElement, clientX, clientY, scale)
-  }
-
   function smoothZoom(clientX, clientY, scaleMultiplier) {
       var transform = getTransform(svgElement)
       var fromValue = transform.matrix.a
@@ -375,7 +445,7 @@ function createPanZoom(svgElement, options) {
       triggerEvent('zoom')
 
       cancelZoomAnimation()
-      return zoomSvgElementByRatio(svgElement, clientX, clientY, scaleMultiplier)
+      return zoomSvgElementByRatio(clientX, clientY, scaleMultiplier)
   }
 
   function cancelZoomAnimation() {

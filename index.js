@@ -86,6 +86,7 @@ function createPanZoom(svgElement, options) {
   function moveBy(dx, dy) {
     transform.x += dx
     transform.y += dy
+    triggerEvent('pan')
     makeDirty()
   }
 

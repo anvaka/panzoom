@@ -40,6 +40,12 @@ function createPanZoom(svgElement, options) {
 
   var beforeWheel = options.beforeWheel || noop
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
+  var bounds = options.bounds
+  validateBounds(bounds)
+
+  var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
+  var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
+  var boundsPadding = typeof options.bounds === 'number' ? options.bounds : 0.05
 
   var lastTouchEndTime = 0
 
@@ -86,13 +92,96 @@ function createPanZoom(svgElement, options) {
   function moveBy(dx, dy) {
     transform.x += dx
     transform.y += dy
+
+    keepTransformInsideBounds()
+
     triggerEvent('pan')
     makeDirty()
   }
 
+  function keepTransformInsideBounds() {
+    var boundingBox = getBoundingBox()
+    if (!boundingBox) return
+
+    var adjusted = false
+    var clientRect = getClientRect()
+
+    var diff = boundingBox.left - clientRect.right;
+    if (diff > 0) {
+      transform.x += diff
+      adjusted = true
+    }
+    // check the other side:
+    diff = boundingBox.right - clientRect.left
+    if (diff < 0) {
+      transform.x += diff
+      adjusted = true
+    }
+
+    // y axis:
+    diff = boundingBox.top - clientRect.bottom;
+    if (diff > 0) {
+      // we adjust transform, so that it matches exactly our boinding box:
+      // transform.y = boundingBox.top - (boundingBox.height + boundingBox.y) * transform.scale =>
+      // transform.y = boundingBox.top - (clientRect.bottom - transform.y) =>
+      // transform.y = diff + transform.y =>
+      transform.y += diff
+      adjusted = true
+    }
+
+    diff = boundingBox.bottom - clientRect.top;
+    if (diff < 0) {
+      transform.y += diff
+      adjusted = true
+    }
+    return adjusted
+  }
+
+  /**
+   * Returns bounding box that should be used to restrict svg scene movement.
+   */
+  function getBoundingBox() {
+    if (!bounds) return // client does not want to restrict movement
+
+    if (typeof bounds === 'boolean') {
+      var sceneWidth = owner.clientWidth
+      var sceneHeight = owner.clientHeight
+
+      return {
+        left: sceneWidth * boundsPadding,
+        top: sceneHeight * boundsPadding,
+        right: sceneWidth * (1 - boundsPadding),
+        bottom: sceneHeight * (1 - boundsPadding),
+      }
+    }
+
+    return bounds
+  }
+
+  function getClientRect() {
+    var bbox = svgElement.getBBox()
+    var leftTop = client(bbox.x, bbox.y)
+
+    return {
+      left: leftTop.x,
+      top: leftTop.y,
+      right: bbox.width * transform.scale + leftTop.x,
+      bottom: bbox.height * transform.scale + leftTop.y
+    }
+  }
+
+  function client(x, y) {
+    return {
+      x: (x * transform.scale) + transform.x,
+      y: (y * transform.scale) + transform.y
+    }
+  }
+
+
   function moveTo(x, y) {
     transform.x = x
     transform.y = y
+    keepTransformInsideBounds()
     makeDirty()
   }
 
@@ -102,6 +191,13 @@ function createPanZoom(svgElement, options) {
   }
 
   function zoomByRatio(clientX, clientY, ratio) {
+    var newScale = transform.scale * ratio
+
+    if (newScale > maxZoom || newScale < minZoom) {
+      // outside of allowed bounds
+      return
+    }
+
     var parentCTM = owner.getScreenCTM()
 
     var x = clientX * parentCTM.a - parentCTM.e
@@ -109,23 +205,16 @@ function createPanZoom(svgElement, options) {
 
     transform.x = x - ratio * (x - transform.x)
     transform.y = y - ratio * (y - transform.y)
-    transform.scale *= ratio
+
+    var transformAdjusted = keepTransformInsideBounds()
+    if (!transformAdjusted) transform.scale *= ratio
 
     makeDirty()
   }
 
   function zoomToAbsoluteValue(clientX, clientY, zoomLevel) {
-    var parentCTM = owner.getScreenCTM()
-
-    var x = clientX * parentCTM.a - parentCTM.e
-    var y = clientY * parentCTM.a - parentCTM.f
-
     var ratio = zoomLevel / transform.scale
-    transform.x = x - ratio * (x - transform.x)
-    transform.y = y - ratio * (y - transform.y)
-    transform.scale = zoomLevel
-
-    makeDirty()
+    zoomByRatio(clientX, clientY, ratio)
   }
 
   function centerOn(ui) {
@@ -501,3 +590,18 @@ function createPanZoom(svgElement, options) {
 
 
 function noop() { }
+
+function validateBounds(bounds) {
+  var boundsType = typeof bounds
+  if (boundsType === 'undefined' || boundsType === 'boolean') return // this is okay
+  // otherwise need to be more thorough:
+  var validBounds = isNumber(bounds.left) && isNumber(bounds.top) &&
+    isNumber(bounds.top) && isNumber(bounds.right)
+
+  if (!boundsValid) throw new Error('Bounds object is not valid. It can be: ' +
+    'undefined, boolean (true|false) or an object {left, top, right, bottom}')
+}
+
+function isNumber(x) {
+  return Number.isFinite(x)
+}

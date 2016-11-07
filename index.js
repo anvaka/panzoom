@@ -45,7 +45,7 @@ function createPanZoom(svgElement, options) {
 
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
-  var boundsPadding = typeof options.bounds === 'number' ? options.bounds : 0.05
+  var boundsPadding = typeof options.boundsPaddding === 'number' ? options.boundsPaddding : 0.05
 
   var lastTouchEndTime = 0
 

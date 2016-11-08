@@ -211,6 +211,8 @@ function createPanZoom(svgElement, options) {
     var transformAdjusted = keepTransformInsideBounds()
     if (!transformAdjusted) transform.scale *= ratio
 
+    triggerEvent('zoom')
+
     makeDirty()
   }
 
@@ -543,8 +545,6 @@ function createPanZoom(svgElement, options) {
   }
 
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
-      triggerEvent('zoom')
-
       smoothScroll.cancel()
       cancelZoomAnimation()
       return zoomByRatio(clientX, clientY, scaleMultiplier)

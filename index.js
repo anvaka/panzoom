@@ -36,6 +36,7 @@ function createPanZoom(svgElement, options) {
   }
 
   owner.setAttribute('tabindex', 1); // TODO: not sure if this is really polite
+
   options = options || {}
 
   var beforeWheel = options.beforeWheel || noop
@@ -46,6 +47,7 @@ function createPanZoom(svgElement, options) {
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
   var boundsPadding = typeof options.boundsPaddding === 'number' ? options.boundsPaddding : 0.05
+  var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
 
   var lastTouchEndTime = 0
 
@@ -424,7 +426,7 @@ function createPanZoom(svgElement, options) {
     } else {
       var now = new Date()
       if (now - lastTouchEndTime < doubleTapSpeedInMS) {
-        smoothZoom(mouseX, mouseY, defaultDoubleTapZoomSpeed)
+        smoothZoom(mouseX, mouseY, zoomDoubleClickSpeed)
       }
 
       lastTouchEndTime = now
@@ -441,7 +443,7 @@ function createPanZoom(svgElement, options) {
   }
 
   function onDoubleClick(e) {
-    smoothZoom(e.clientX, e.clientY, defaultDoubleTapZoomSpeed)
+    smoothZoom(e.clientX, e.clientY, zoomDoubleClickSpeed)
 
     e.preventDefault()
     e.stopPropagation()

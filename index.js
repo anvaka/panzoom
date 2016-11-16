@@ -598,9 +598,9 @@ function validateBounds(bounds) {
   if (boundsType === 'undefined' || boundsType === 'boolean') return // this is okay
   // otherwise need to be more thorough:
   var validBounds = isNumber(bounds.left) && isNumber(bounds.top) &&
-    isNumber(bounds.top) && isNumber(bounds.right)
+    isNumber(bounds.bottom) && isNumber(bounds.right)
 
-  if (!boundsValid) throw new Error('Bounds object is not valid. It can be: ' +
+  if (!validBounds) throw new Error('Bounds object is not valid. It can be: ' +
     'undefined, boolean (true|false) or an object {left, top, right, bottom}')
 }
 

@@ -5,23 +5,29 @@
  */
 var wheel = require('wheel')
 var animate = require('amator');
-var zoomTo = require('./lib/zoomTo.js')
 var kinetic = require('./lib/kinetic.js')
-var moveBy = require('./lib/moveBy.js')
-var moveTo = require('./lib/moveTo.js')
 var createEvent = require('./lib/createEvent.js')
+var preventTextSelection = require('./lib/textSlectionInterceptor.js')()
+var getTransform = require('./lib/getSvgTransformMatrix.js')
+var Transform = require('./lib/transform.js');
 
 var defaultZoomSpeed = 0.065
+var defaultDoubleTapZoomSpeed = 1.75
+var doubleTapSpeedInMS = 300
 
 module.exports = createPanZoom;
 
 function createPanZoom(svgElement, options) {
   var elementValid = (svgElement instanceof SVGElement)
 
+  var isDirty = false
+  var transform = new Transform()
+
   if (!elementValid) {
     throw new Error('svg element is required for svg.panzoom to work')
   }
 
+  var frameAnimation
   var owner = svgElement.ownerSVGElement
   if (!owner) {
     throw new Error(
@@ -30,10 +36,21 @@ function createPanZoom(svgElement, options) {
       'As of March 2016 only FireFox supported transform on the root element')
   }
 
+  owner.setAttribute('tabindex', 1); // TODO: not sure if this is really polite
+
   options = options || {}
 
   var beforeWheel = options.beforeWheel || noop
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
+  var bounds = options.bounds
+  validateBounds(bounds)
+
+  var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
+  var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
+  var boundsPadding = typeof options.boundsPaddding === 'number' ? options.boundsPaddding : 0.05
+  var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
+
+  var lastTouchEndTime = 0
 
   var touchInProgress = false
 
@@ -46,12 +63,9 @@ function createPanZoom(svgElement, options) {
 
   var pinchZoomLength
 
-  var dragObject
-  var prevSelectStart
-  var prevDragStart
-
-  var smoothScroll = kinetic(svgElement, scroll)
-  var previousAnimation
+  var smoothScroll = kinetic(getRect, scroll)
+  var moveByAnimation
+  var zoomToAnimation
 
   var multitouch
 
@@ -60,8 +74,157 @@ function createPanZoom(svgElement, options) {
   return {
     dispose: dispose,
     moveBy: internalMoveBy,
+    moveTo: moveTo,
     centerOn: centerOn,
-    zoomTo: publicZoomTo
+    zoomTo: publicZoomTo,
+    zoomAbs: zoomToAbsoluteValue,
+    getTransform: getTransformModel
+  }
+
+  function getTransformModel() {
+    // TODO: should this be read only?
+    return transform
+  }
+
+  function getRect() {
+    return {
+      x: transform.x,
+      y: transform.y
+    }
+  }
+
+  function moveTo(x, y) {
+    transform.x = x
+    transform.y = y
+
+    keepTransformInsideBounds()
+
+    triggerEvent('pan')
+    makeDirty()
+  }
+
+  function moveBy(dx, dy) {
+    moveTo(transform.x + dx, transform.y + dy);
+  }
+
+  function keepTransformInsideBounds() {
+    var boundingBox = getBoundingBox()
+    if (!boundingBox) return
+
+    var adjusted = false
+    var clientRect = getClientRect()
+
+    var diff = boundingBox.left - clientRect.right;
+    if (diff > 0) {
+      transform.x += diff
+      adjusted = true
+    }
+    // check the other side:
+    diff = boundingBox.right - clientRect.left
+    if (diff < 0) {
+      transform.x += diff
+      adjusted = true
+    }
+
+    // y axis:
+    diff = boundingBox.top - clientRect.bottom;
+    if (diff > 0) {
+      // we adjust transform, so that it matches exactly our boinding box:
+      // transform.y = boundingBox.top - (boundingBox.height + boundingBox.y) * transform.scale =>
+      // transform.y = boundingBox.top - (clientRect.bottom - transform.y) =>
+      // transform.y = diff + transform.y =>
+      transform.y += diff
+      adjusted = true
+    }
+
+    diff = boundingBox.bottom - clientRect.top;
+    if (diff < 0) {
+      transform.y += diff
+      adjusted = true
+    }
+    return adjusted
+  }
+
+  /**
+   * Returns bounding box that should be used to restrict svg scene movement.
+   */
+  function getBoundingBox() {
+    if (!bounds) return // client does not want to restrict movement
+
+    if (typeof bounds === 'boolean') {
+      var sceneWidth = owner.clientWidth
+      var sceneHeight = owner.clientHeight
+
+      return {
+        left: sceneWidth * boundsPadding,
+        top: sceneHeight * boundsPadding,
+        right: sceneWidth * (1 - boundsPadding),
+        bottom: sceneHeight * (1 - boundsPadding),
+      }
+    }
+
+    return bounds
+  }
+
+  function getClientRect() {
+    var bbox = svgElement.getBBox()
+    var leftTop = client(bbox.x, bbox.y)
+
+    return {
+      left: leftTop.x,
+      top: leftTop.y,
+      right: bbox.width * transform.scale + leftTop.x,
+      bottom: bbox.height * transform.scale + leftTop.y
+    }
+  }
+
+  function client(x, y) {
+    return {
+      x: (x * transform.scale) + transform.x,
+      y: (y * transform.scale) + transform.y
+    }
+  }
+
+
+  function moveTo(x, y) {
+    transform.x = x
+    transform.y = y
+    keepTransformInsideBounds()
+    makeDirty()
+  }
+
+  function makeDirty() {
+    isDirty = true
+    frameAnimation = window.requestAnimationFrame(frame)
+  }
+
+  function zoomByRatio(clientX, clientY, ratio) {
+    var newScale = transform.scale * ratio
+
+    if (newScale > maxZoom || newScale < minZoom) {
+      // outside of allowed bounds
+      return
+    }
+
+    var parentCTM = owner.getScreenCTM()
+
+    var x = clientX * parentCTM.a - parentCTM.e
+    var y = clientY * parentCTM.a - parentCTM.f
+
+    transform.x = x - ratio * (x - transform.x)
+    transform.y = y - ratio * (y - transform.y)
+
+    var transformAdjusted = keepTransformInsideBounds()
+    if (!transformAdjusted) transform.scale *= ratio
+
+    triggerEvent('zoom')
+
+    makeDirty()
+  }
+
+  function zoomToAbsoluteValue(clientX, clientY, zoomLevel) {
+    var ratio = zoomLevel / transform.scale
+    zoomByRatio(clientX, clientY, ratio)
   }
 
   function centerOn(ui) {
@@ -81,20 +244,19 @@ function createPanZoom(svgElement, options) {
 
   function internalMoveBy(dx, dy, smooth) {
     if (!smooth) {
-      moveBy(svgElement, dx, dy)
-      return
+      return moveBy(dx, dy)
     }
 
-    if (previousAnimation) previousAnimation.cancel()
+    if (moveByAnimation) moveByAnimation.cancel()
 
     var from = { x: 0, y: 0 }
     var to = { x: dx, y : dy }
     var lastX = 0
     var lastY = 0
 
-    previousAnimation = animate(from, to, {
+    moveByAnimation = animate(from, to, {
       step: function(v) {
-        moveBy(svgElement, v.x - lastX, v.y - lastY)
+        moveBy(v.x - lastX, v.y - lastY)
 
         lastX = v.x
         lastY = v.y
@@ -103,12 +265,20 @@ function createPanZoom(svgElement, options) {
   }
 
   function scroll(x, y) {
-    moveTo(svgElement, x, y)
+    cancelZoomAnimation()
+    triggerEvent('pan')
+    moveTo(x, y)
   }
 
   function dispose() {
     wheel.removeWheelListener(svgElement, onMouseWheel)
     owner.removeEventListener('mousedown', onMouseDown)
+    owner.removeEventListener('keydown', onKeyDown)
+    owner.removeEventListener('dblclick', onDoubleClick)
+    if (frameAnimation) {
+      window.cancelAnimationFrame(frameAnimation)
+      frameAnimation = 0;
+    }
 
     smoothScroll.cancel()
 
@@ -120,8 +290,65 @@ function createPanZoom(svgElement, options) {
 
   function listenForEvents() {
     owner.addEventListener('mousedown', onMouseDown)
+    owner.addEventListener('dblclick', onDoubleClick)
     owner.addEventListener('touchstart', onTouch)
+    owner.addEventListener('keydown', onKeyDown)
     wheel.addWheelListener(owner, onMouseWheel)
+
+    makeDirty()
+  }
+
+
+  function frame() {
+    if (isDirty) applyTransform()
+  }
+
+  function applyTransform() {
+    isDirty = false
+
+    svgElement.setAttribute('transform', 'matrix(' +
+      transform.scale + ' 0 0 ' +
+      transform.scale + ' ' +
+      transform.x + ' ' + transform.y + ')')
+
+    frameAnimation = 0
+  }
+
+  function onKeyDown(e) {
+    var x = 0, y = 0, z = 0
+    if (e.keyCode === 38) {
+      y = 1 // up
+    } else if (e.keyCode === 40) {
+      y = -1 // down
+    } else if (e.keyCode === 37) {
+      x = 1 // left
+    } else if (e.keyCode === 39) {
+      x = -1 // right
+    } else if (e.keyCode === 189 || e.keyCode === 109) { // DASH or SUBTRACT
+      z = 1 // `-` -  zoom out
+    } else if (e.keyCode === 187 || e.keyCode === 107) { // EQUAL SIGN or ADD
+      z = -1 // `=` - zoom in (equal sign on US layout is under `+`)
+    }
+
+    if (x || y) {
+      e.preventDefault()
+      e.stopPropagation()
+
+      var clientRect = owner.getBoundingClientRect()
+      // movement speed should be the same in both X and Y direction:
+      var offset = Math.min(clientRect.width, clientRect.height)
+      var moveSpeedRatio = 0.05
+      var dx = offset * moveSpeedRatio * x
+      var dy = offset * moveSpeedRatio * y
+
+      // TODO: currently we do not animate this. It could be better to have animation
+      internalMoveBy(dx, dy)
+    }
+
+    if (z) {
+      var scaleMultiplier = getScaleMultiplier(z)
+      publicZoomTo(owner.clientWidth/2, owner.clientHeight/2, scaleMultiplier)
+    }
   }
 
   function onTouch(e) {
@@ -159,7 +386,6 @@ function createPanZoom(svgElement, options) {
   }
 
   function handleTouchMove(e) {
-    triggerPanStart()
 
     if (e.touches.length === 1) {
       e.stopPropagation()
@@ -168,6 +394,9 @@ function createPanZoom(svgElement, options) {
       var dx = touch.clientX - mouseX
       var dy = touch.clientY - mouseY
 
+      if (dx !== 0 && dy !== 0) {
+        triggerPanStart()
+      }
       mouseX = touch.clientX
       mouseY = touch.clientY
       internalMoveBy(dx, dy)
@@ -190,7 +419,7 @@ function createPanZoom(svgElement, options) {
       mouseX = (t1.clientX + t2.clientX)/2
       mouseY = (t1.clientY + t2.clientY)/2
 
-      zoomTo(svgElement, mouseX, mouseY, scaleMultiplier)
+      publicZoomTo(mouseX, mouseY, scaleMultiplier)
 
       pinchZoomLength = currentPinchLength
       e.stopPropagation()
@@ -203,6 +432,13 @@ function createPanZoom(svgElement, options) {
       mouseX = e.touches[0].clientX
       mouseY = e.touches[0].clientY
     } else {
+      var now = new Date()
+      if (now - lastTouchEndTime < doubleTapSpeedInMS) {
+        smoothZoom(mouseX, mouseY, zoomDoubleClickSpeed)
+      }
+
+      lastTouchEndTime = now
+
       touchInProgress = false
       triggerPanEnd()
       releaseTouches()
@@ -214,10 +450,17 @@ function createPanZoom(svgElement, options) {
       (finger1.clientY - finger2.clientY) * (finger1.clientY - finger2.clientY)
   }
 
+  function onDoubleClick(e) {
+    smoothZoom(e.clientX, e.clientY, zoomDoubleClickSpeed)
+
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
   function onMouseDown(e) {
     if (touchInProgress) {
       // modern browsers will fire mousedown for touch events too
-      // we do not want this, since touch is handled separately.
+      // we do not want this: touch is handled separately.
       e.stopPropagation()
       return false;
     }
@@ -234,13 +477,7 @@ function createPanZoom(svgElement, options) {
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup', onMouseUp)
 
-    // prevent text selection
-    dragObject = e.target || e.srcElement
-    prevSelectStart = window.document.onselectstart
-    prevDragStart = window.document.ondragstart
-
-    window.document.onselectstart = disabled
-    dragObject.ondragstart = disabled
+    preventTextSelection.capture(e.target || e.srcElement)
 
     return false
   }
@@ -256,13 +493,12 @@ function createPanZoom(svgElement, options) {
 
     mouseX = e.clientX
     mouseY = e.clientY
+
     internalMoveBy(dx, dy)
   }
 
   function onMouseUp() {
-    window.document.onselectstart = prevSelectStart
-    if (dragObject) dragObject.ondragstart = prevDragStart
-
+    preventTextSelection.release()
     triggerPanEnd()
     releaseDocumentMouse()
   }
@@ -290,13 +526,41 @@ function createPanZoom(svgElement, options) {
     var scaleMultiplier = getScaleMultiplier(e.deltaY)
 
     if (scaleMultiplier !== 1) {
-      zoomTo(svgElement, e.clientX, e.clientY, scaleMultiplier)
+      publicZoomTo(e.clientX, e.clientY, scaleMultiplier)
       e.preventDefault()
     }
   }
 
+  function smoothZoom(clientX, clientY, scaleMultiplier) {
+      var transform = getTransform(svgElement)
+      var fromValue = transform.matrix.a
+      var from = {scale: fromValue}
+      var to = {scale: scaleMultiplier * fromValue}
+
+      smoothScroll.cancel()
+      cancelZoomAnimation()
+
+      // TODO: should consolidate this and publicZoomTo
+      triggerEvent('zoom')
+
+      zoomToAnimation = animate(from, to, {
+        step: function(v) {
+          zoomToAbsoluteValue(clientX, clientY, v.scale)
+        }
+      })
+  }
+
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
-      zoomTo(svgElement, clientX, clientY, scaleMultiplier)
+      smoothScroll.cancel()
+      cancelZoomAnimation()
+      return zoomByRatio(clientX, clientY, scaleMultiplier)
+  }
+
+  function cancelZoomAnimation() {
+      if (zoomToAnimation) {
+          zoomToAnimation.cancel()
+          zoomToAnimation = null
+      }
   }
 
   function getScaleMultiplier(delta) {
@@ -332,14 +596,25 @@ function createPanZoom(svgElement, options) {
   }
 }
 
-function disabled(e) {
-  e.stopPropagation()
-  return false
-}
 
 function noop() { }
 
-},{"./lib/createEvent.js":2,"./lib/kinetic.js":4,"./lib/moveBy.js":5,"./lib/moveTo.js":6,"./lib/zoomTo.js":7,"amator":8,"wheel":10}],2:[function(require,module,exports){
+function validateBounds(bounds) {
+  var boundsType = typeof bounds
+  if (boundsType === 'undefined' || boundsType === 'boolean') return // this is okay
+  // otherwise need to be more thorough:
+  var validBounds = isNumber(bounds.left) && isNumber(bounds.top) &&
+    isNumber(bounds.bottom) && isNumber(bounds.right)
+
+  if (!validBounds) throw new Error('Bounds object is not valid. It can be: ' +
+    'undefined, boolean (true|false) or an object {left, top, right, bottom}')
+}
+
+function isNumber(x) {
+  return Number.isFinite(x)
+}
+
+},{"./lib/createEvent.js":2,"./lib/getSvgTransformMatrix.js":3,"./lib/kinetic.js":4,"./lib/textSlectionInterceptor.js":5,"./lib/transform.js":6,"amator":7,"wheel":9}],2:[function(require,module,exports){
 /* global Event */
 module.exports = createEvent;
 
@@ -354,7 +629,9 @@ function createEvent(name) {
     evt.initCustomEvent(name, true, true, undefined)
     return evt
   } else {
-    return new Event(name)
+    return new Event(name, {
+      bubbles: true
+    })
   }
 }
 
@@ -363,9 +640,9 @@ function createEvent(name) {
  * Returns transformation matrix for an element. If no such transformation matrix
  * exist - a new one is created.
  */
-module.exports = getTransform
+module.exports = getSvgTransformMatrix
 
-function getTransform(svgElement) {
+function getSvgTransformMatrix(svgElement) {
   var baseVal = svgElement.transform.baseVal
   if (baseVal.numberOfItems) return baseVal.getItem(0)
 
@@ -380,14 +657,12 @@ function getTransform(svgElement) {
 /**
  * Allows smooth kinetic scrolling of the surface
  */
-var getTransform = require('./getTransform.js');
-
 module.exports = kinetic;
 
 var minVelocity = 10
 var amplitude = 0.42
 
-function kinetic(element, scroll) {
+function kinetic(getRect, scroll) {
   var lastRect
   var timestamp
   var timeConstant = 342
@@ -490,96 +765,55 @@ function kinetic(element, scroll) {
     }
   }
 
-  function getRect() {
-    var matrix = getTransform(element).matrix
-    return {
-      x: matrix.e,
-      y: matrix.f
-    }
+}
+
+},{}],5:[function(require,module,exports){
+/**
+ * Disallows selecting text.
+ */
+module.exports = createTextSelectionInterceptor
+
+function createTextSelectionInterceptor() {
+  var dragObject
+  var prevSelectStart
+  var prevDragStart
+
+  return {
+    capture: capture,
+    release: release
+  }
+
+  function capture(domObject) {
+    prevSelectStart = window.document.onselectstart
+    prevDragStart = window.document.ondragstart
+
+    window.document.onselectstart = disabled
+
+    dragObject = domObject
+    dragObject.ondragstart = disabled
+  }
+
+  function release() {
+    window.document.onselectstart = prevSelectStart
+    if (dragObject) dragObject.ondragstart = prevDragStart
   }
 }
 
-},{"./getTransform.js":3}],5:[function(require,module,exports){
-/**
- * Moves element by dx,dy offset without affecting its scale
- */
-var getTransform = require('./getTransform.js')
-
-module.exports = moveBy
-
-function moveBy(svgElement, dx, dy) {
-  var transform = getTransform(svgElement)
-
-  svgElement.setAttribute(
-    'transform', 'matrix(' +
-      [
-        transform.matrix.a,
-        transform.matrix.b,
-        transform.matrix.c,
-        transform.matrix.d,
-        transform.matrix.e + dx,
-        transform.matrix.f + dy
-      ].join(' ') + ')'
-  )
+function disabled(e) {
+  e.stopPropagation()
+  return false
 }
 
-},{"./getTransform.js":3}],6:[function(require,module,exports){
-/**
- * Move element to given x,y coordinates without affecting its scale
- */
-var getTransform = require('./getTransform.js')
+},{}],6:[function(require,module,exports){
+module.exports = Transform;
 
-module.exports = moveTo
-
-function moveTo(svgElement, x, y) {
-  var transform = getTransform(svgElement)
-
-  svgElement.setAttribute(
-    'transform', 'matrix(' +
-      [
-        transform.matrix.a,
-        transform.matrix.b,
-        transform.matrix.c,
-        transform.matrix.d,
-        x,
-        y
-      ].join(' ') + ')'
-  )
+function Transform() {
+  this.x = 0;
+  this.y = 0;
+  this.scale = 1;
 }
 
-},{"./getTransform.js":3}],7:[function(require,module,exports){
-var getTransform = require('./getTransform.js')
-
-module.exports = zoomTo
-
-/**
- * Sets the new scale for an element, as if it was zoomed into `clientX, clientY`
- * point
- */
-function zoomTo(svgElement, clientX, clientY, scaleMultiplier) {
-  var transform = getTransform(svgElement)
-  var parent = svgElement.ownerSVGElement
-  var parentCTM = parent.getScreenCTM()
-  // we have consistent scale on both X and Y, thus we can use just one attribute:
-  var scale = transform.matrix.a * scaleMultiplier
-
-  var x = clientX * parentCTM.a - parentCTM.e
-  var y = clientY * parentCTM.a - parentCTM.f
-
-  svgElement.setAttribute(
-    'transform', 'matrix(' +
-      [
-        scale,
-        transform.matrix.b,
-        transform.matrix.c,
-        scale,
-        x - scaleMultiplier * (x - transform.matrix.e),
-        y - scaleMultiplier * (y - transform.matrix.f)
-      ].join(' ') + ')'
-  )
-}
-
-},{"./getTransform.js":3}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var BezierEasing = require('bezier-easing')
 
 // Predefined set of animations. Similar to CSS easing functions
@@ -687,7 +921,7 @@ function timeoutScheduler() {
   }
 }
 
-},{"bezier-easing":9}],9:[function(require,module,exports){
+},{"bezier-easing":8}],8:[function(require,module,exports){
 /**
  * https://github.com/gre/bezier-easing
  * BezierEasing - use bezier curve for transition easing function
@@ -793,7 +1027,7 @@ module.exports = function bezier (mX1, mY1, mX2, mY2) {
   };
 };
 
-},{}],10:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 /**
  * This module unifies handling of mouse whee event across different browsers
  *

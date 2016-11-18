@@ -73,6 +73,7 @@ function createPanZoom(svgElement, options) {
   return {
     dispose: dispose,
     moveBy: internalMoveBy,
+    moveTo: moveTo,
     centerOn: centerOn,
     zoomTo: publicZoomTo,
     zoomAbs: zoomToAbsoluteValue,
@@ -91,14 +92,18 @@ function createPanZoom(svgElement, options) {
     }
   }
 
-  function moveBy(dx, dy) {
-    transform.x += dx
-    transform.y += dy
+  function moveTo(x, y) {
+    transform.x = x
+    transform.y = y
 
     keepTransformInsideBounds()
 
     triggerEvent('pan')
     makeDirty()
+  }
+
+  function moveBy(dx, dy) {
+    moveTo(transform.x + dx, transform.y + dy);
   }
 
   function keepTransformInsideBounds() {

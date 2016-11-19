@@ -76,7 +76,7 @@ function createPanZoom(svgElement, options) {
     moveTo: moveTo,
     centerOn: centerOn,
     zoomTo: publicZoomTo,
-    zoomAbs: zoomToAbsoluteValue,
+    zoomAbs: zoomAbs,
     getTransform: getTransformModel
   }
 
@@ -184,20 +184,16 @@ function createPanZoom(svgElement, options) {
     }
   }
 
-
-  function moveTo(x, y) {
-    transform.x = x
-    transform.y = y
-    keepTransformInsideBounds()
-    makeDirty()
-  }
-
   function makeDirty() {
     isDirty = true
     frameAnimation = window.requestAnimationFrame(frame)
   }
 
   function zoomByRatio(clientX, clientY, ratio) {
+    if (Number.isNaN(clientX) || Number.isNaN(clientY) || Number.isNaN(ratio)) {
+      throw new Error('zoom requires valid numbers');
+    }
+
     var newScale = transform.scale * ratio
 
     if (newScale > maxZoom || newScale < minZoom) {
@@ -221,7 +217,7 @@ function createPanZoom(svgElement, options) {
     makeDirty()
   }
 
-  function zoomToAbsoluteValue(clientX, clientY, zoomLevel) {
+  function zoomAbs(clientX, clientY, zoomLevel) {
     var ratio = zoomLevel / transform.scale
     zoomByRatio(clientX, clientY, ratio)
   }
@@ -265,7 +261,6 @@ function createPanZoom(svgElement, options) {
 
   function scroll(x, y) {
     cancelZoomAnimation()
-    triggerEvent('pan')
     moveTo(x, y)
   }
 
@@ -544,7 +539,7 @@ function createPanZoom(svgElement, options) {
 
       zoomToAnimation = animate(from, to, {
         step: function(v) {
-          zoomToAbsoluteValue(clientX, clientY, v.scale)
+          zoomAbs(clientX, clientY, v.scale)
         }
       })
   }

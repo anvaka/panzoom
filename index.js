@@ -190,7 +190,7 @@ function createPanZoom(svgElement, options) {
   }
 
   function zoomByRatio(clientX, clientY, ratio) {
-    if (Number.isNaN(clientX) || Number.isNaN(clientY) || Number.isNaN(ratio)) {
+    if (isNaN(clientX) || isNaN(clientY) || isNaN(ratio)) {
       throw new Error('zoom requires valid numbers');
     }
 
@@ -590,7 +590,6 @@ function createPanZoom(svgElement, options) {
   }
 }
 
-
 function noop() { }
 
 function validateBounds(bounds) {
@@ -606,4 +605,13 @@ function validateBounds(bounds) {
 
 function isNumber(x) {
   return Number.isFinite(x)
+}
+
+// IE 11 does not support isNaN:
+function isNaN(value) {
+  if (Number.isNaN) {
+    return Number.isNaN(value)
+  }
+
+  return value !== value
 }

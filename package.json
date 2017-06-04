@@ -2,7 +2,7 @@
   "name": "panzoom",
   "version": "2.5.0",
   "description": "Pan and zoom SVG elements",
-  "main": "index.js",
+  "main": "dist/panzoom.min.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "browserify -s panzoom ./index.js > dist/panzoom.js && uglifyjs dist/panzoom.js > dist/panzoom.min.js"
@@ -21,5 +21,9 @@
   "dependencies": {
     "amator": "^1.0.1",
     "wheel": "0.0.4"
+  },
+  "devDependencies": {
+    "browserify": "^14.4.0",
+    "uglifyjs": "^2.4.11"
   }
 }

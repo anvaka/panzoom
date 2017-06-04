@@ -347,7 +347,7 @@ function createPanZoom(svgElement, options) {
 
   function onTouch(e) {
     if (e.touches.length === 1) {
-      return handleSignleFingerTouch(e, e.touches[0])
+      return handleSingleFingerTouch(e, e.touches[0])
     } else if (e.touches.length === 2) {
       // handleTouchMove() will care about pinch zoom.
       e.stopPropagation()
@@ -359,10 +359,7 @@ function createPanZoom(svgElement, options) {
     }
   }
 
-  function handleSignleFingerTouch(e) {
-    e.stopPropagation()
-    e.preventDefault()
-
+  function handleSingleFingerTouch(e) {
     var touch = e.touches[0]
     mouseX = touch.clientX
     mouseY = touch.clientY

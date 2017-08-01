@@ -305,6 +305,7 @@ function createPanZoom(svgElement, options) {
       transform.scale + ' ' +
       transform.x + ' ' + transform.y + ')')
 
+    triggerEvent('transform')
     frameAnimation = 0
   }
 

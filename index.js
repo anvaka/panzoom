@@ -7,8 +7,9 @@ var animate = require('amator');
 var kinetic = require('./lib/kinetic.js')
 var createEvent = require('./lib/createEvent.js')
 var preventTextSelection = require('./lib/textSlectionInterceptor.js')()
-var getTransform = require('./lib/getSvgTransformMatrix.js')
 var Transform = require('./lib/transform.js');
+var makeSvgController = require('./lib/svgController.js')
+var makeDomController = require('./lib/domController.js')
 
 var defaultZoomSpeed = 0.065
 var defaultDoubleTapZoomSpeed = 1.75
@@ -16,27 +17,26 @@ var doubleTapSpeedInMS = 300
 
 module.exports = createPanZoom;
 
-function createPanZoom(svgElement, options) {
-  var elementValid = (svgElement instanceof SVGElement)
+function createPanZoom(domElement, options) {
+  var domController
+
+  if (domElement instanceof SVGElement) {
+    domController = makeSvgController(domElement)
+  }
+
+  if (domElement instanceof HTMLElement) {
+    domController = makeDomController(domElement)
+  }
+
+  if (!domController) {
+    throw new Error('Cannot create panzoom for the current type of dom element')
+  }
+  var owner = domController.getOwner()
 
   var isDirty = false
   var transform = new Transform()
 
-  if (!elementValid) {
-    throw new Error('svg element is required for svg.panzoom to work')
-  }
-
   var frameAnimation
-  var owner = svgElement.ownerSVGElement
-  if (!owner) {
-    throw new Error(
-      'Do not apply panzoom to the root <svg> element. ' +
-      'Use its child instead (e.g. <g></g>). ' +
-      'As of March 2016 only FireFox supported transform on the root element')
-  }
-
-  owner.setAttribute('tabindex', 1); // TODO: not sure if this is really polite
-
   options = options || {}
 
   var beforeWheel = options.beforeWheel || noop
@@ -145,12 +145,13 @@ function createPanZoom(svgElement, options) {
   }
 
   /**
-   * Returns bounding box that should be used to restrict svg scene movement.
+   * Returns bounding box that should be used to restrict scene movement.
    */
   function getBoundingBox() {
     if (!bounds) return // client does not want to restrict movement
 
     if (typeof bounds === 'boolean') {
+      // for boolean type we use parent container bounds
       var sceneWidth = owner.clientWidth
       var sceneHeight = owner.clientHeight
 
@@ -166,7 +167,7 @@ function createPanZoom(svgElement, options) {
   }
 
   function getClientRect() {
-    var bbox = svgElement.getBBox()
+    var bbox = domController.getLeftTop()
     var leftTop = client(bbox.x, bbox.y)
 
     return {
@@ -201,7 +202,7 @@ function createPanZoom(svgElement, options) {
       return
     }
 
-    var parentCTM = owner.getScreenCTM()
+    var parentCTM = domController.getScreenCTM()
 
     var x = clientX * parentCTM.a - parentCTM.e
     var y = clientY * parentCTM.a - parentCTM.f
@@ -265,7 +266,7 @@ function createPanZoom(svgElement, options) {
   }
 
   function dispose() {
-    wheel.removeWheelListener(svgElement, onMouseWheel)
+    wheel.removeWheelListener(domElement, onMouseWheel)
     owner.removeEventListener('mousedown', onMouseDown)
     owner.removeEventListener('keydown', onKeyDown)
     owner.removeEventListener('dblclick', onDoubleClick)
@@ -300,10 +301,8 @@ function createPanZoom(svgElement, options) {
   function applyTransform() {
     isDirty = false
 
-    svgElement.setAttribute('transform', 'matrix(' +
-      transform.scale + ' 0 0 ' +
-      transform.scale + ' ' +
-      transform.x + ' ' + transform.y + ')')
+    // TODO: Should I allow to cancel this?
+    domController.applyTransform(transform);
 
     triggerEvent('transform')
     frameAnimation = 0
@@ -527,8 +526,7 @@ function createPanZoom(svgElement, options) {
   }
 
   function smoothZoom(clientX, clientY, scaleMultiplier) {
-      var transform = getTransform(svgElement)
-      var fromValue = transform.matrix.a
+      var fromValue = transform.scale
       var from = {scale: fromValue}
       var to = {scale: scaleMultiplier * fromValue}
 
@@ -587,7 +585,7 @@ function createPanZoom(svgElement, options) {
 
   function triggerEvent(name) {
     var event = createEvent(name)
-    svgElement.dispatchEvent(event)
+    domElement.dispatchEvent(event)
   }
 }
 

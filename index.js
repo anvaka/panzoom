@@ -167,7 +167,7 @@ function createPanZoom(domElement, options) {
   }
 
   function getClientRect() {
-    var bbox = domController.getLeftTop()
+    var bbox = domController.getBBox()
     var leftTop = client(bbox.x, bbox.y)
 
     return {

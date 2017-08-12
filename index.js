@@ -17,8 +17,16 @@ var doubleTapSpeedInMS = 300
 
 module.exports = createPanZoom;
 
+/**
+ * Creates a new instance of panzoom, so that an object can be panned and zoomed
+ * 
+ * @param {DOMElement} domElement where panzoom should be attached.
+ * @param {Object} options that configure behavior.
+ */
 function createPanZoom(domElement, options) {
-  var domController = options && options.controller
+  options = options || {}
+
+  var domController = options.controller
 
   if (!domController) {
     if (domElement instanceof SVGElement) {
@@ -38,18 +46,21 @@ function createPanZoom(domElement, options) {
   var isDirty = false
   var transform = new Transform()
 
-  var frameAnimation
-  options = options || {}
-
-  var beforeWheel = options.beforeWheel || noop
-  var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
   var bounds = options.bounds
-  validateBounds(bounds)
-
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
   var boundsPadding = typeof options.boundsPaddding === 'number' ? options.boundsPaddding : 0.05
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
+  var beforeWheel = options.beforeWheel || noop
+  var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
+
+  validateBounds(bounds)
+
+  if (options.autocenter) {
+    autocenter()
+  }
+
+  var frameAnimation
 
   var lastTouchEndTime = 0
 
@@ -80,6 +91,32 @@ function createPanZoom(domElement, options) {
     zoomTo: publicZoomTo,
     zoomAbs: zoomAbs,
     getTransform: getTransformModel
+  }
+
+  function autocenter() {
+    var w // width of the parent
+    var h // height of the parent
+    var left = 0
+    var top = 0
+    var sceneBoundingBox = getBoundingBox()
+    if (sceneBoundingBox) {
+      // If we have bounding box - use it.
+      left = sceneBoundingBox.left
+      top = sceneBoundingBox.top
+      w = sceneBoundingBox.right - sceneBoundingBox.left
+      h = sceneBoundingBox.bottom - sceneBoundingBox.top
+    } else {
+      // otherwise just use whatever space we have
+      w = owner.clientWidth
+      h = owner.clientHeight
+    }
+    var bbox = domController.getBBox()
+    var dh = h/bbox.height
+    var dw = w/bbox.width
+    var scale = Math.min(dw, dh)
+    transform.x = -(bbox.left + bbox.width/2) * scale + w/2 + left
+    transform.y = -(bbox.top + bbox.height/2) * scale + h/2 + top
+    transform.scale = scale
   }
 
   function getTransformModel() {
@@ -170,7 +207,7 @@ function createPanZoom(domElement, options) {
 
   function getClientRect() {
     var bbox = domController.getBBox()
-    var leftTop = client(bbox.x, bbox.y)
+    var leftTop = client(bbox.left, bbox.top)
 
     return {
       left: leftTop.x,
@@ -204,10 +241,19 @@ function createPanZoom(domElement, options) {
       return
     }
 
-    var parentCTM = domController.getScreenCTM()
+    var parentScale = 1
+    var parentOffsetX = 0
+    var parentOffsetY = 0
 
-    var x = clientX * parentCTM.a - parentCTM.e
-    var y = clientY * parentCTM.a - parentCTM.f
+    if (domController.getScreenCTM) {
+      var parentCTM = domController.getScreenCTM()
+      parentScale = parentCTM.a
+      parentOffsetX = parentCTM.e
+      parentOffsetY = parentCTM.f
+    }
+
+    var x = clientX * parentScale - parentOffsetX
+    var y = clientY * parentScale - parentOffsetY
 
     transform.x = x - ratio * (x - transform.x)
     transform.y = y - ratio * (y - transform.y)

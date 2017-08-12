@@ -18,14 +18,16 @@ var doubleTapSpeedInMS = 300
 module.exports = createPanZoom;
 
 function createPanZoom(domElement, options) {
-  var domController
+  var domController = options && options.controller
 
-  if (domElement instanceof SVGElement) {
-    domController = makeSvgController(domElement)
-  }
+  if (!domController) {
+    if (domElement instanceof SVGElement) {
+      domController = makeSvgController(domElement)
+    }
 
-  if (domElement instanceof HTMLElement) {
-    domController = makeDomController(domElement)
+    if (domElement instanceof HTMLElement) {
+      domController = makeDomController(domElement)
+    }
   }
 
   if (!domController) {

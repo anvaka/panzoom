@@ -49,6 +49,7 @@ function createPanZoom(domElement, options) {
   var bounds = options.bounds
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
+
   var boundsPadding = typeof options.boundsPaddding === 'number' ? options.boundsPaddding : 0.05
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
   var beforeWheel = options.beforeWheel || noop
@@ -75,7 +76,16 @@ function createPanZoom(domElement, options) {
 
   var pinchZoomLength
 
-  var smoothScroll = kinetic(getRect, scroll)
+  var smoothScroll
+  if ('smoothScroll' in options && !options.smoothScroll) {
+    // If user explicitly asked us not to use smooth scrolling, we obey
+    smoothScroll = rigidScroll() 
+  } else {
+    // otherwise we use forward smoothScroll settings to kinetic API
+    // which makes scroll smoothing.
+    smoothScroll = kinetic(getRect, scroll, options.smoothScroll)
+  }
+
   var moveByAnimation
   var zoomToAnimation
 
@@ -661,4 +671,12 @@ function isNaN(value) {
   }
 
   return value !== value
+}
+
+function rigidScroll() {
+  return {
+    start: noop,
+    stop: noop,
+    cancel: noop
+  }
 }

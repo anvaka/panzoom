@@ -83,7 +83,7 @@ function createPanZoom(domElement, options) {
   } else {
     // otherwise we use forward smoothScroll settings to kinetic API
     // which makes scroll smoothing.
-    smoothScroll = kinetic(getRect, scroll, options.smoothScroll)
+    smoothScroll = kinetic(getPoint, scroll, options.smoothScroll)
   }
 
   var moveByAnimation
@@ -100,7 +100,22 @@ function createPanZoom(domElement, options) {
     centerOn: centerOn,
     zoomTo: publicZoomTo,
     zoomAbs: zoomAbs,
-    getTransform: getTransformModel
+    getTransform: getTransformModel,
+    showRectangle: showRectangle
+  }
+
+  function showRectangle(rect) {
+    // TODO: this duplicates autocenter. I think autocenter should go.
+    var w = owner.clientWidth
+    var h = owner.clientHeight
+    var rectWidth = rect.right - rect.left;
+    var rectHeight = rect.bottom - rect.top;
+    var dh = h/rectHeight
+    var dw = w/rectWidth
+    var scale = Math.min(dw, dh)
+    transform.x = -(rect.left + rectWidth/2) * scale + w/2
+    transform.y = -(rect.top + rectHeight/2) * scale + h/2
+    transform.scale = scale
   }
 
   function autocenter() {
@@ -134,7 +149,7 @@ function createPanZoom(domElement, options) {
     return transform
   }
 
-  function getRect() {
+  function getPoint() {
     return {
       x: transform.x,
       y: transform.y

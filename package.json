@@ -1,6 +1,6 @@
 {
   "name": "panzoom",
-  "version": "2.6.0",
+  "version": "3.0.0",
   "description": "Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).",
   "main": "index.js",
   "scripts": {

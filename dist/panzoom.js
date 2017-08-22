@@ -8,8 +8,9 @@ var animate = require('amator');
 var kinetic = require('./lib/kinetic.js')
 var createEvent = require('./lib/createEvent.js')
 var preventTextSelection = require('./lib/textSlectionInterceptor.js')()
-var getTransform = require('./lib/getSvgTransformMatrix.js')
 var Transform = require('./lib/transform.js');
+var makeSvgController = require('./lib/svgController.js')
+var makeDomController = require('./lib/domController.js')
 
 var defaultZoomSpeed = 0.065
 var defaultDoubleTapZoomSpeed = 1.75
@@ -17,38 +18,51 @@ var doubleTapSpeedInMS = 300
 
 module.exports = createPanZoom;
 
-function createPanZoom(svgElement, options) {
-  var elementValid = (svgElement instanceof SVGElement)
+/**
+ * Creates a new instance of panzoom, so that an object can be panned and zoomed
+ * 
+ * @param {DOMElement} domElement where panzoom should be attached.
+ * @param {Object} options that configure behavior.
+ */
+function createPanZoom(domElement, options) {
+  options = options || {}
+
+  var domController = options.controller
+
+  if (!domController) {
+    if (domElement instanceof SVGElement) {
+      domController = makeSvgController(domElement)
+    }
+
+    if (domElement instanceof HTMLElement) {
+      domController = makeDomController(domElement)
+    }
+  }
+
+  if (!domController) {
+    throw new Error('Cannot create panzoom for the current type of dom element')
+  }
+  var owner = domController.getOwner()
 
   var isDirty = false
   var transform = new Transform()
 
-  if (!elementValid) {
-    throw new Error('svg element is required for svg.panzoom to work')
+  var bounds = options.bounds
+  var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
+  var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
+
+  var boundsPadding = typeof options.boundsPaddding === 'number' ? options.boundsPaddding : 0.05
+  var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
+  var beforeWheel = options.beforeWheel || noop
+  var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
+
+  validateBounds(bounds)
+
+  if (options.autocenter) {
+    autocenter()
   }
 
   var frameAnimation
-  var owner = svgElement.ownerSVGElement
-  if (!owner) {
-    throw new Error(
-      'Do not apply panzoom to the root <svg> element. ' +
-      'Use its child instead (e.g. <g></g>). ' +
-      'As of March 2016 only FireFox supported transform on the root element')
-  }
-
-  owner.setAttribute('tabindex', 1); // TODO: not sure if this is really polite
-
-  options = options || {}
-
-  var beforeWheel = options.beforeWheel || noop
-  var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
-  var bounds = options.bounds
-  validateBounds(bounds)
-
-  var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
-  var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
-  var boundsPadding = typeof options.boundsPaddding === 'number' ? options.boundsPaddding : 0.05
-  var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
 
   var lastTouchEndTime = 0
 
@@ -63,7 +77,16 @@ function createPanZoom(svgElement, options) {
 
   var pinchZoomLength
 
-  var smoothScroll = kinetic(getRect, scroll)
+  var smoothScroll
+  if ('smoothScroll' in options && !options.smoothScroll) {
+    // If user explicitly asked us not to use smooth scrolling, we obey
+    smoothScroll = rigidScroll() 
+  } else {
+    // otherwise we use forward smoothScroll settings to kinetic API
+    // which makes scroll smoothing.
+    smoothScroll = kinetic(getPoint, scroll, options.smoothScroll)
+  }
+
   var moveByAnimation
   var zoomToAnimation
 
@@ -78,7 +101,48 @@ function createPanZoom(svgElement, options) {
     centerOn: centerOn,
     zoomTo: publicZoomTo,
     zoomAbs: zoomAbs,
-    getTransform: getTransformModel
+    getTransform: getTransformModel,
+    showRectangle: showRectangle
+  }
+
+  function showRectangle(rect) {
+    // TODO: this duplicates autocenter. I think autocenter should go.
+    var w = owner.clientWidth
+    var h = owner.clientHeight
+    var rectWidth = rect.right - rect.left;
+    var rectHeight = rect.bottom - rect.top;
+    var dh = h/rectHeight
+    var dw = w/rectWidth
+    var scale = Math.min(dw, dh)
+    transform.x = -(rect.left + rectWidth/2) * scale + w/2
+    transform.y = -(rect.top + rectHeight/2) * scale + h/2
+    transform.scale = scale
+  }
+
+  function autocenter() {
+    var w // width of the parent
+    var h // height of the parent
+    var left = 0
+    var top = 0
+    var sceneBoundingBox = getBoundingBox()
+    if (sceneBoundingBox) {
+      // If we have bounding box - use it.
+      left = sceneBoundingBox.left
+      top = sceneBoundingBox.top
+      w = sceneBoundingBox.right - sceneBoundingBox.left
+      h = sceneBoundingBox.bottom - sceneBoundingBox.top
+    } else {
+      // otherwise just use whatever space we have
+      w = owner.clientWidth
+      h = owner.clientHeight
+    }
+    var bbox = domController.getBBox()
+    var dh = h/bbox.height
+    var dw = w/bbox.width
+    var scale = Math.min(dw, dh)
+    transform.x = -(bbox.left + bbox.width/2) * scale + w/2 + left
+    transform.y = -(bbox.top + bbox.height/2) * scale + h/2 + top
+    transform.scale = scale
   }
 
   function getTransformModel() {
@@ -86,7 +150,7 @@ function createPanZoom(svgElement, options) {
     return transform
   }
 
-  function getRect() {
+  function getPoint() {
     return {
       x: transform.x,
       y: transform.y
@@ -146,12 +210,13 @@ function createPanZoom(svgElement, options) {
   }
 
   /**
-   * Returns bounding box that should be used to restrict svg scene movement.
+   * Returns bounding box that should be used to restrict scene movement.
    */
   function getBoundingBox() {
     if (!bounds) return // client does not want to restrict movement
 
     if (typeof bounds === 'boolean') {
+      // for boolean type we use parent container bounds
       var sceneWidth = owner.clientWidth
       var sceneHeight = owner.clientHeight
 
@@ -167,8 +232,8 @@ function createPanZoom(svgElement, options) {
   }
 
   function getClientRect() {
-    var bbox = svgElement.getBBox()
-    var leftTop = client(bbox.x, bbox.y)
+    var bbox = domController.getBBox()
+    var leftTop = client(bbox.left, bbox.top)
 
     return {
       left: leftTop.x,
@@ -202,10 +267,19 @@ function createPanZoom(svgElement, options) {
       return
     }
 
-    var parentCTM = owner.getScreenCTM()
+    var parentScale = 1
+    var parentOffsetX = 0
+    var parentOffsetY = 0
 
-    var x = clientX * parentCTM.a - parentCTM.e
-    var y = clientY * parentCTM.a - parentCTM.f
+    if (domController.getScreenCTM) {
+      var parentCTM = domController.getScreenCTM()
+      parentScale = parentCTM.a
+      parentOffsetX = parentCTM.e
+      parentOffsetY = parentCTM.f
+    }
+
+    var x = clientX * parentScale - parentOffsetX
+    var y = clientY * parentScale - parentOffsetY
 
     transform.x = x - ratio * (x - transform.x)
     transform.y = y - ratio * (y - transform.y)
@@ -266,7 +340,7 @@ function createPanZoom(svgElement, options) {
   }
 
   function dispose() {
-    wheel.removeWheelListener(svgElement, onMouseWheel)
+    wheel.removeWheelListener(domElement, onMouseWheel)
     owner.removeEventListener('mousedown', onMouseDown)
     owner.removeEventListener('keydown', onKeyDown)
     owner.removeEventListener('dblclick', onDoubleClick)
@@ -301,11 +375,10 @@ function createPanZoom(svgElement, options) {
   function applyTransform() {
     isDirty = false
 
-    svgElement.setAttribute('transform', 'matrix(' +
-      transform.scale + ' 0 0 ' +
-      transform.scale + ' ' +
-      transform.x + ' ' + transform.y + ')')
+    // TODO: Should I allow to cancel this?
+    domController.applyTransform(transform);
 
+    triggerEvent('transform')
     frameAnimation = 0
   }
 
@@ -527,8 +600,7 @@ function createPanZoom(svgElement, options) {
   }
 
   function smoothZoom(clientX, clientY, scaleMultiplier) {
-      var transform = getTransform(svgElement)
-      var fromValue = transform.matrix.a
+      var fromValue = transform.scale
       var from = {scale: fromValue}
       var to = {scale: scaleMultiplier * fromValue}
 
@@ -587,7 +659,7 @@ function createPanZoom(svgElement, options) {
 
   function triggerEvent(name) {
     var event = createEvent(name)
-    svgElement.dispatchEvent(event)
+    domElement.dispatchEvent(event)
   }
 }
 
@@ -617,7 +689,14 @@ function isNaN(value) {
   return value !== value
 }
 
-},{"./lib/createEvent.js":2,"./lib/getSvgTransformMatrix.js":3,"./lib/kinetic.js":4,"./lib/textSlectionInterceptor.js":5,"./lib/transform.js":6,"amator":7,"wheel":9}],2:[function(require,module,exports){
+function rigidScroll() {
+  return {
+    start: noop,
+    stop: noop,
+    cancel: noop
+  }
+}
+},{"./lib/createEvent.js":2,"./lib/domController.js":3,"./lib/kinetic.js":4,"./lib/svgController.js":5,"./lib/textSlectionInterceptor.js":6,"./lib/transform.js":7,"amator":8,"wheel":10}],2:[function(require,module,exports){
 /* global Event */
 module.exports = createEvent;
 
@@ -639,34 +718,70 @@ function createEvent(name) {
 }
 
 },{}],3:[function(require,module,exports){
-/**
- * Returns transformation matrix for an element. If no such transformation matrix
- * exist - a new one is created.
- */
-module.exports = getSvgTransformMatrix
+module.exports = makeSvgController
 
-function getSvgTransformMatrix(svgElement) {
-  var baseVal = svgElement.transform.baseVal
-  if (baseVal.numberOfItems) return baseVal.getItem(0)
+function makeSvgController(domElement) {
+  var elementValid = (domElement instanceof HTMLElement)
+  if (!elementValid) {
+    throw new Error('svg element is required for svg.panzoom to work')
+  }
 
-  var owner = svgElement.ownerSVGElement || svgElement
-  var transform = owner.createSVGTransform()
-  svgElement.transform.baseVal.appendItem(transform)
+  var owner = domElement.parentElement
+  if (!owner) {
+    throw new Error(
+      'Do not apply panzoom to the detached DOM element. '
+    )
+  }
 
-  return transform
+  owner.setAttribute('tabindex', 1); // TODO: not sure if this is really polite
+
+  var api = {
+    getBBox: getBBox,
+    getOwner: getOwner,
+    applyTransform: applyTransform,
+  }
+  
+  return api
+
+  function getOwner() {
+    return owner
+  }
+
+  function getBBox() {
+    // TODO: We should probably cache this?
+    return  {
+      left: 0,
+      top: 0,
+      width: domElement.clientWidth,
+      height: domElement.clientHeight
+    }
+  }
+
+  function applyTransform(transform) {
+    // TODO: Should we cache this?
+    domElement.style.transformOrigin = '0 0 0';
+    domElement.style.transform = 'matrix(' +
+      transform.scale + ', 0, 0, ' +
+      transform.scale + ', ' +
+      transform.x + ', ' + transform.y + ')'
+  }
 }
-
 },{}],4:[function(require,module,exports){
 /**
  * Allows smooth kinetic scrolling of the surface
  */
 module.exports = kinetic;
 
-var minVelocity = 10
-var amplitude = 0.42
+function kinetic(getPoint, scroll, settings) {
+  if (typeof settings !== 'object') {
+    // setting could come as boolean, we should ignore it, and use an object.
+    settings = {}
+  }
 
-function kinetic(getRect, scroll) {
-  var lastRect
+  var minVelocity = (typeof settings.minVelocity === 'number') ? settings.minVelocity : 5
+  var amplitude = (typeof settings.amplitude === 'number') ? settings.amplitude : 0.25
+
+  var lastPoint
   var timestamp
   var timeConstant = 342
 
@@ -688,7 +803,7 @@ function kinetic(getRect, scroll) {
   }
 
   function start() {
-    lastRect = getRect()
+    lastPoint = getPoint()
 
     ax = ay = vx = vy = 0
     timestamp = new Date()
@@ -696,6 +811,9 @@ function kinetic(getRect, scroll) {
     window.clearInterval(ticker)
     window.cancelAnimationFrame(raf)
 
+    // we start polling the point position to accumulate velocity
+    // Once we stop(), we will use accumulated velocity to keep scrolling
+    // an object.
     ticker = window.setInterval(track, 100);
   }
 
@@ -704,12 +822,12 @@ function kinetic(getRect, scroll) {
     var elapsed = now - timestamp;
     timestamp = now;
 
-    var rect = getRect()
+    var currentPoint = getPoint()
 
-    var dx = rect.x - lastRect.x
-    var dy = rect.y - lastRect.y
+    var dx = currentPoint.x - lastPoint.x
+    var dy = currentPoint.y - lastPoint.y
 
-    lastRect = rect
+    lastPoint = currentPoint
 
     var dt = 1000 / (1 + elapsed)
 
@@ -722,10 +840,10 @@ function kinetic(getRect, scroll) {
     window.clearInterval(ticker);
     window.cancelAnimationFrame(raf)
 
-    var rect = getRect()
+    var currentPoint = getPoint()
 
-    targetX = rect.x
-    targetY = rect.y
+    targetX = currentPoint.x
+    targetY = currentPoint.y
     timestamp = Date.now()
 
     if (vx < -minVelocity || vx > minVelocity) {
@@ -771,6 +889,59 @@ function kinetic(getRect, scroll) {
 }
 
 },{}],5:[function(require,module,exports){
+module.exports = makeSvgController
+
+function makeSvgController(svgElement) {
+  var elementValid = (svgElement instanceof SVGElement)
+  if (!elementValid) {
+    throw new Error('svg element is required for svg.panzoom to work')
+  }
+
+  var owner = svgElement.ownerSVGElement
+  if (!owner) {
+    throw new Error(
+      'Do not apply panzoom to the root <svg> element. ' +
+      'Use its child instead (e.g. <g></g>). ' +
+      'As of March 2016 only FireFox supported transform on the root element')
+  }
+
+  owner.setAttribute('tabindex', 1); // TODO: not sure if this is really polite
+
+  var api = {
+    getBBox: getBBox,
+    getScreenCTM: getScreenCTM,
+    getOwner: getOwner,
+    applyTransform: applyTransform,
+  }
+  
+  return api
+
+  function getOwner() {
+    return owner
+  }
+
+  function getBBox() {
+    var bbox =  svgElement.getBBox()
+    return {
+      left: bbox.x,
+      top: bbox.y,
+      width: bbox.width,
+      height: bbox.height,
+    }
+  }
+
+  function getScreenCTM() {
+    return owner.getScreenCTM()
+  }
+
+  function applyTransform(transform) {
+    svgElement.setAttribute('transform', 'matrix(' +
+      transform.scale + ' 0 0 ' +
+      transform.scale + ' ' +
+      transform.x + ' ' + transform.y + ')')
+  }
+}
+},{}],6:[function(require,module,exports){
 /**
  * Disallows selecting text.
  */
@@ -807,7 +978,7 @@ function disabled(e) {
   return false
 }
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 module.exports = Transform;
 
 function Transform() {
@@ -816,7 +987,7 @@ function Transform() {
   this.scale = 1;
 }
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 var BezierEasing = require('bezier-easing')
 
 // Predefined set of animations. Similar to CSS easing functions
@@ -924,7 +1095,7 @@ function timeoutScheduler() {
   }
 }
 
-},{"bezier-easing":8}],8:[function(require,module,exports){
+},{"bezier-easing":9}],9:[function(require,module,exports){
 /**
  * https://github.com/gre/bezier-easing
  * BezierEasing - use bezier curve for transition easing function
@@ -1030,7 +1201,7 @@ module.exports = function bezier (mX1, mY1, mX2, mY2) {
   };
 };
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 /**
  * This module unifies handling of mouse whee event across different browsers
  *

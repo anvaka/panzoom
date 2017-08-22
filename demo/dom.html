@@ -4,8 +4,8 @@
     <meta http-equiv='content-type' content='text/html; charset=utf-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>
     <meta http-equiv='X-UA-Compatible' content='IE=edge' >
-    <META NAME='Description' content='Pan and zoom svg elements demo '>
-    <meta name='keywords' content='svg, pan, zoom' />
+    <META NAME='Description' content='Pan and zoom DOM  elements demo '>
+    <meta name='keywords' content='dom, pan, zoom' />
     <meta name='author' content='Andrei Kashcha'>
     <meta name='title' content='DOM panzoom demo' />
     <title>DOM panzoom demo</title>
@@ -16,13 +16,6 @@ body, html {
   height: 100%;
   padding: 0;
   margin: 0;
-}
-svg {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
 }
 .header, .footer{
   position: absolute;
@@ -67,9 +60,7 @@ Integer pretium erat et elit bibendum, ut laoreet tortor rutrum. Donec pulvinar 
     <script src='../dist/panzoom.js'></script>
     <script>
 var area = document.querySelector('.zoomable')
-panzoom(area, {
-  bounds: true,
-})
+panzoom(area)
     </script>
 <a href="https://github.com/anvaka/panzoom"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
   </body>

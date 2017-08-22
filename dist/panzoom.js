@@ -718,9 +718,9 @@ function createEvent(name) {
 }
 
 },{}],3:[function(require,module,exports){
-module.exports = makeSvgController
+module.exports = makeDomController
 
-function makeSvgController(domElement) {
+function makeDomController(domElement) {
   var elementValid = (domElement instanceof HTMLElement)
   if (!elementValid) {
     throw new Error('svg element is required for svg.panzoom to work')
@@ -733,6 +733,7 @@ function makeSvgController(domElement) {
     )
   }
 
+  domElement.scrollTop = 0;
   owner.setAttribute('tabindex', 1); // TODO: not sure if this is really polite
 
   var api = {
@@ -766,6 +767,7 @@ function makeSvgController(domElement) {
       transform.x + ', ' + transform.y + ')'
   }
 }
+
 },{}],4:[function(require,module,exports){
 /**
  * Allows smooth kinetic scrolling of the surface

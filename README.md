@@ -1,9 +1,10 @@
 # panzoom
 
-Pan and zoom an SVG scene.
+Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).
 
 # Demo
 
+ * [Regular DOM object](https:////anvaka.github.io/panzoom/demo/dom.html)
  * [Standalone page](https:////anvaka.github.io/panzoom/demo/index.html) - this repository
  * [YASIV](http://www.yasiv.com/#/Search?q=algorithms&category=Books&lang=US) - my hobby project
  * [SVG Tiger](https://jsfiddle.net/uwxcmbyg/) - js fiddle
@@ -19,10 +20,22 @@ npm install panzoom --save
 Or download from CDN:
 
 ```
-https://cdn.rawgit.com/anvaka/panzoom/v1.3.1/dist/panzoom.min.js
+https://cdn.rawgit.com/anvaka/panzoom/v3.0.0/dist/panzoom.min.js
 ```
 
 If you download from CDN the library will be available under `panzoom` global name.
+
+## Pan and zoom DOM subtree
+
+``` JS
+// just grab any DOM element
+var area = document.querySelector('.zoomable')
+
+// And pass it to panzoom
+panzoom(area)
+```
+
+## SVG panzoom example
 
 ``` html
 <!-- this is your html file with svg -->

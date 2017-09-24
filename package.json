@@ -1,13 +1,14 @@
 {
   "name": "panzoom",
-  "version": "2.4.0",
-  "description": "Pan and zoom SVG elements",
+  "version": "3.0.0",
+  "description": "Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "browserify -s panzoom ./index.js > dist/panzoom.js && uglifyjs dist/panzoom.js > dist/panzoom.min.js"
   },
   "keywords": [
+    "dom",
     "svg",
     "pan",
     "zoom"

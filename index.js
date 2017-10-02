@@ -55,6 +55,8 @@ function createPanZoom(domElement, options) {
   var beforeWheel = options.beforeWheel || noop
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
 
+  var suppressPanForEvent = options.suppressPanForEvent
+
   validateBounds(bounds)
 
   if (options.autocenter) {
@@ -531,6 +533,16 @@ function createPanZoom(domElement, options) {
       e.stopPropagation()
       return false;
     }
+
+    // if suppress function is provided, pan will start only if it
+    // evaluates to false
+    if (suppressPanForEvent) {
+      if (suppressPanForEvent(e)) {
+        e.stopPropagation()
+        return false;
+      }
+    }
+
     // for IE, left click == 1
     // for Firefox, left click == 0
     var isLeftButton = ((e.button === 1 && window.event !== null) || e.button === 0)
@@ -565,9 +577,9 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseUp() {
+    releaseDocumentMouse()
     preventTextSelection.release()
     triggerPanEnd()
-    releaseDocumentMouse()
   }
 
   function releaseDocumentMouse() {

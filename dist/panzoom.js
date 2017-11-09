@@ -20,7 +20,7 @@ module.exports = createPanZoom;
 
 /**
  * Creates a new instance of panzoom, so that an object can be panned and zoomed
- * 
+ *
  * @param {DOMElement} domElement where panzoom should be attached.
  * @param {Object} options that configure behavior.
  */
@@ -51,7 +51,7 @@ function createPanZoom(domElement, options) {
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
 
-  var boundsPadding = typeof options.boundsPaddding === 'number' ? options.boundsPaddding : 0.05
+  var boundsPadding = typeof options.boundsPadding === 'number' ? options.boundsPadding : 0.05
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
   var beforeWheel = options.beforeWheel || noop
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
@@ -80,7 +80,7 @@ function createPanZoom(domElement, options) {
   var smoothScroll
   if ('smoothScroll' in options && !options.smoothScroll) {
     // If user explicitly asked us not to use smooth scrolling, we obey
-    smoothScroll = rigidScroll() 
+    smoothScroll = rigidScroll()
   } else {
     // otherwise we use forward smoothScroll settings to kinetic API
     // which makes scroll smoothing.
@@ -696,6 +696,7 @@ function rigidScroll() {
     cancel: noop
   }
 }
+
 },{"./lib/createEvent.js":2,"./lib/domController.js":3,"./lib/kinetic.js":4,"./lib/svgController.js":5,"./lib/textSlectionInterceptor.js":6,"./lib/transform.js":7,"amator":8,"wheel":10}],2:[function(require,module,exports){
 /* global Event */
 module.exports = createEvent;
@@ -1003,9 +1004,12 @@ var animations = {
 
 
 module.exports = animate;
+module.exports.makeAggregateRaf = makeAggregateRaf;
+module.exports.sharedScheduler = makeAggregateRaf();
+
 
 function animate(source, target, options) {
-  var start= Object.create(null)
+  var start = Object.create(null)
   var diff = Object.create(null)
   options = options || {}
   // We let clients specify their own easing function
@@ -1030,7 +1034,7 @@ function animate(source, target, options) {
     diff[key] = target[key] - source[key]
   })
 
-  var durationInMs = options.duration || 400
+  var durationInMs = typeof options.duration === 'number' ? options.duration : 400
   var durationInFrames = Math.max(1, durationInMs * 0.06) // 0.06 because 60 frames pers 1,000 ms
   var previousAnimationId
   var frame = 0
@@ -1094,6 +1098,51 @@ function timeoutScheduler() {
     cancel: function (id) {
       return clearTimeout(id)
     }
+  }
+}
+
+function makeAggregateRaf() {
+  var frontBuffer = new Set();
+  var backBuffer = new Set();
+  var frameToken = 0;
+
+  return {
+    next: next,
+    cancel: next,
+    clearAll: clearAll
+  }
+
+  function clearAll() {
+    frontBuffer.clear();
+    backBuffer.clear();
+    cancelAnimationFrame(frameToken);
+    frameToken = 0;
+  }
+
+  function next(callback) {
+    backBuffer.add(callback);
+    renderNextFrame();
+  }
+
+  function renderNextFrame() {
+    if (!frameToken) frameToken = requestAnimationFrame(renderFrame);
+  }
+
+  function renderFrame() {
+    frameToken = 0;
+
+    var t = backBuffer;
+    backBuffer = frontBuffer;
+    frontBuffer = t;
+
+    frontBuffer.forEach(function(callback) {
+      callback();
+    });
+    frontBuffer.clear();
+  }
+
+  function cancel(callback) {
+    backBuffer.delete(callback);
   }
 }
 

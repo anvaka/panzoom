@@ -417,7 +417,7 @@ function createPanZoom(domElement, options) {
 
   function onTouch(e) {
     if (e.touches.length === 1) {
-      return handleSignleFingerTouch(e, e.touches[0])
+      return handleSingleFingerTouch(e, e.touches[0])
     } else if (e.touches.length === 2) {
       // handleTouchMove() will care about pinch zoom.
       e.stopPropagation()
@@ -429,9 +429,10 @@ function createPanZoom(domElement, options) {
     }
   }
 
-  function handleSignleFingerTouch(e) {
-    e.stopPropagation()
-    e.preventDefault()
+  function handleSingleFingerTouch(e) {
+    // allow single touch propagation to enable link or image maps touching
+    // e.stopPropagation()
+    // e.preventDefault()
 
     var touch = e.touches[0]
     mouseX = touch.clientX

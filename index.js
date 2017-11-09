@@ -174,19 +174,16 @@ function createPanZoom(domElement, options) {
     var boundingBox = getBoundingBox()
     if (!boundingBox) return
 
-    var adjusted = false
     var clientRect = getClientRect()
 
     var diff = boundingBox.left - clientRect.right;
     if (diff > 0) {
       transform.x += diff
-      adjusted = true
     }
     // check the other side:
     diff = boundingBox.right - clientRect.left
     if (diff < 0) {
       transform.x += diff
-      adjusted = true
     }
 
     // y axis:
@@ -197,15 +194,12 @@ function createPanZoom(domElement, options) {
       // transform.y = boundingBox.top - (clientRect.bottom - transform.y) =>
       // transform.y = diff + transform.y =>
       transform.y += diff
-      adjusted = true
     }
 
     diff = boundingBox.bottom - clientRect.top;
     if (diff < 0) {
       transform.y += diff
-      adjusted = true
     }
-    return adjusted
   }
 
   /**
@@ -283,8 +277,8 @@ function createPanZoom(domElement, options) {
     transform.x = x - ratio * (x - transform.x)
     transform.y = y - ratio * (y - transform.y)
 
-    var transformAdjusted = keepTransformInsideBounds()
-    if (!transformAdjusted) transform.scale *= ratio
+    keepTransformInsideBounds()
+    transform.scale *= ratio
 
     triggerEvent('zoom')
 

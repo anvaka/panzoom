@@ -261,9 +261,15 @@ function createPanZoom(domElement, options) {
 
     var newScale = transform.scale * ratio
 
-    if (newScale > maxZoom || newScale < minZoom) {
-      // outside of allowed bounds
-      return
+    if (newScale < minZoom) {
+      if (transform.scale === minZoom)
+        return;
+      ratio = minZoom / transform.scale
+    }
+    if (newScale > maxZoom) {
+      if (transform.scale === maxZoom)
+        return;
+      ratio = maxZoom / transform.scale
     }
 
     var parentScale = 1

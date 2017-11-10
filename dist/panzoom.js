@@ -20,7 +20,7 @@ module.exports = createPanZoom;
 
 /**
  * Creates a new instance of panzoom, so that an object can be panned and zoomed
- * 
+ *
  * @param {DOMElement} domElement where panzoom should be attached.
  * @param {Object} options that configure behavior.
  */
@@ -51,7 +51,7 @@ function createPanZoom(domElement, options) {
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
 
-  var boundsPadding = typeof options.boundsPaddding === 'number' ? options.boundsPaddding : 0.05
+  var boundsPadding = typeof options.boundsPadding === 'number' ? options.boundsPadding : 0.05
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
   var beforeWheel = options.beforeWheel || noop
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
@@ -80,7 +80,7 @@ function createPanZoom(domElement, options) {
   var smoothScroll
   if ('smoothScroll' in options && !options.smoothScroll) {
     // If user explicitly asked us not to use smooth scrolling, we obey
-    smoothScroll = rigidScroll() 
+    smoothScroll = rigidScroll()
   } else {
     // otherwise we use forward smoothScroll settings to kinetic API
     // which makes scroll smoothing.
@@ -175,19 +175,16 @@ function createPanZoom(domElement, options) {
     var boundingBox = getBoundingBox()
     if (!boundingBox) return
 
-    var adjusted = false
     var clientRect = getClientRect()
 
     var diff = boundingBox.left - clientRect.right;
     if (diff > 0) {
       transform.x += diff
-      adjusted = true
     }
     // check the other side:
     diff = boundingBox.right - clientRect.left
     if (diff < 0) {
       transform.x += diff
-      adjusted = true
     }
 
     // y axis:
@@ -198,15 +195,12 @@ function createPanZoom(domElement, options) {
       // transform.y = boundingBox.top - (clientRect.bottom - transform.y) =>
       // transform.y = diff + transform.y =>
       transform.y += diff
-      adjusted = true
     }
 
     diff = boundingBox.bottom - clientRect.top;
     if (diff < 0) {
       transform.y += diff
-      adjusted = true
     }
-    return adjusted
   }
 
   /**
@@ -262,9 +256,11 @@ function createPanZoom(domElement, options) {
 
     var newScale = transform.scale * ratio
 
-    if (newScale > maxZoom || newScale < minZoom) {
-      // outside of allowed bounds
-      return
+    if (newScale < minZoom) {
+      ratio = minZoom / transform.scale
+    }
+    if (newScale > maxZoom) {
+      ratio = maxZoom / transform.scale
     }
 
     var parentScale = 1
@@ -284,8 +280,8 @@ function createPanZoom(domElement, options) {
     transform.x = x - ratio * (x - transform.x)
     transform.y = y - ratio * (y - transform.y)
 
-    var transformAdjusted = keepTransformInsideBounds()
-    if (!transformAdjusted) transform.scale *= ratio
+    keepTransformInsideBounds()
+    transform.scale *= ratio
 
     triggerEvent('zoom')
 
@@ -421,7 +417,7 @@ function createPanZoom(domElement, options) {
 
   function onTouch(e) {
     if (e.touches.length === 1) {
-      return handleSignleFingerTouch(e, e.touches[0])
+      return handleSingleFingerTouch(e, e.touches[0])
     } else if (e.touches.length === 2) {
       // handleTouchMove() will care about pinch zoom.
       e.stopPropagation()
@@ -433,9 +429,10 @@ function createPanZoom(domElement, options) {
     }
   }
 
-  function handleSignleFingerTouch(e) {
-    e.stopPropagation()
-    e.preventDefault()
+  function handleSingleFingerTouch(e) {
+    // allow single touch propagation to enable link or image maps touching
+    // e.stopPropagation()
+    // e.preventDefault()
 
     var touch = e.touches[0]
     mouseX = touch.clientX
@@ -482,7 +479,8 @@ function createPanZoom(domElement, options) {
         delta = -1
       }
 
-      var scaleMultiplier = getScaleMultiplier(delta)
+      // var scaleMultiplier = getScaleMultiplier(delta)
+      var scaleMultiplier = currentPinchLength / pinchZoomLength
 
       mouseX = (t1.clientX + t2.clientX)/2
       mouseY = (t1.clientY + t2.clientY)/2
@@ -514,8 +512,8 @@ function createPanZoom(domElement, options) {
   }
 
   function getPinchZoomLength(finger1, finger2) {
-    return (finger1.clientX - finger2.clientX) * (finger1.clientX - finger2.clientX) +
-      (finger1.clientY - finger2.clientY) * (finger1.clientY - finger2.clientY)
+    return Math.sqrt((finger1.clientX - finger2.clientX) * (finger1.clientX - finger2.clientX) +
+      (finger1.clientY - finger2.clientY) * (finger1.clientY - finger2.clientY))
   }
 
   function onDoubleClick(e) {
@@ -696,6 +694,7 @@ function rigidScroll() {
     cancel: noop
   }
 }
+
 },{"./lib/createEvent.js":2,"./lib/domController.js":3,"./lib/kinetic.js":4,"./lib/svgController.js":5,"./lib/textSlectionInterceptor.js":6,"./lib/transform.js":7,"amator":8,"wheel":10}],2:[function(require,module,exports){
 /* global Event */
 module.exports = createEvent;
@@ -1003,9 +1002,12 @@ var animations = {
 
 
 module.exports = animate;
+module.exports.makeAggregateRaf = makeAggregateRaf;
+module.exports.sharedScheduler = makeAggregateRaf();
+
 
 function animate(source, target, options) {
-  var start= Object.create(null)
+  var start = Object.create(null)
   var diff = Object.create(null)
   options = options || {}
   // We let clients specify their own easing function
@@ -1030,7 +1032,7 @@ function animate(source, target, options) {
     diff[key] = target[key] - source[key]
   })
 
-  var durationInMs = options.duration || 400
+  var durationInMs = typeof options.duration === 'number' ? options.duration : 400
   var durationInFrames = Math.max(1, durationInMs * 0.06) // 0.06 because 60 frames pers 1,000 ms
   var previousAnimationId
   var frame = 0
@@ -1094,6 +1096,51 @@ function timeoutScheduler() {
     cancel: function (id) {
       return clearTimeout(id)
     }
+  }
+}
+
+function makeAggregateRaf() {
+  var frontBuffer = new Set();
+  var backBuffer = new Set();
+  var frameToken = 0;
+
+  return {
+    next: next,
+    cancel: next,
+    clearAll: clearAll
+  }
+
+  function clearAll() {
+    frontBuffer.clear();
+    backBuffer.clear();
+    cancelAnimationFrame(frameToken);
+    frameToken = 0;
+  }
+
+  function next(callback) {
+    backBuffer.add(callback);
+    renderNextFrame();
+  }
+
+  function renderNextFrame() {
+    if (!frameToken) frameToken = requestAnimationFrame(renderFrame);
+  }
+
+  function renderFrame() {
+    frameToken = 0;
+
+    var t = backBuffer;
+    backBuffer = frontBuffer;
+    frontBuffer = t;
+
+    frontBuffer.forEach(function(callback) {
+      callback();
+    });
+    frontBuffer.clear();
+  }
+
+  function cancel(callback) {
+    backBuffer.delete(callback);
   }
 }
 

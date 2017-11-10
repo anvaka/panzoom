@@ -479,7 +479,7 @@ function createPanZoom(domElement, options) {
       }
 
       // var scaleMultiplier = getScaleMultiplier(delta)
-      var scaleMultiplier = pinchZoomLength / currentPinchLength
+      var scaleMultiplier = currentPinchLength / pinchZoomLength
 
       mouseX = (t1.clientX + t2.clientX)/2
       mouseY = (t1.clientY + t2.clientY)/2

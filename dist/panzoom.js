@@ -512,8 +512,8 @@ function createPanZoom(domElement, options) {
   }
 
   function getPinchZoomLength(finger1, finger2) {
-    return (finger1.clientX - finger2.clientX) * (finger1.clientX - finger2.clientX) +
-      (finger1.clientY - finger2.clientY) * (finger1.clientY - finger2.clientY)
+    return Math.sqrt((finger1.clientX - finger2.clientX) * (finger1.clientX - finger2.clientX) +
+      (finger1.clientY - finger2.clientY) * (finger1.clientY - finger2.clientY))
   }
 
   function onDoubleClick(e) {

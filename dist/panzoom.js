@@ -16,7 +16,7 @@ var defaultZoomSpeed = 0.065
 var defaultDoubleTapZoomSpeed = 1.75
 var doubleTapSpeedInMS = 300
 
-module.exports = createPanZoom;
+module.exports = createPanZoom
 
 /**
  * Creates a new instance of panzoom, so that an object can be panned and zoomed
@@ -47,11 +47,12 @@ function createPanZoom(domElement, options) {
   var isDirty = false
   var transform = new Transform()
 
+  var realPinch = typeof options.realPinch === 'boolean' ? options.realPinch : false
   var bounds = options.bounds
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
 
-  var boundsPadding = typeof options.boundsPaddding === 'number' ? options.boundsPaddding : 0.05
+  var boundsPadding = typeof options.boundsPadding === 'number' ? options.boundsPadding : 0.05
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
   var beforeWheel = options.beforeWheel || noop
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
@@ -109,8 +110,8 @@ function createPanZoom(domElement, options) {
     // TODO: this duplicates autocenter. I think autocenter should go.
     var w = owner.clientWidth
     var h = owner.clientHeight
-    var rectWidth = rect.right - rect.left;
-    var rectHeight = rect.bottom - rect.top;
+    var rectWidth = rect.right - rect.left
+    var rectHeight = rect.bottom - rect.top
     var dh = h/rectHeight
     var dw = w/rectWidth
     var scale = Math.min(dw, dh)
@@ -168,7 +169,7 @@ function createPanZoom(domElement, options) {
   }
 
   function moveBy(dx, dy) {
-    moveTo(transform.x + dx, transform.y + dy);
+    moveTo(transform.x + dx, transform.y + dy)
   }
 
   function keepTransformInsideBounds() {
@@ -178,7 +179,7 @@ function createPanZoom(domElement, options) {
     var adjusted = false
     var clientRect = getClientRect()
 
-    var diff = boundingBox.left - clientRect.right;
+    var diff = boundingBox.left - clientRect.right
     if (diff > 0) {
       transform.x += diff
       adjusted = true
@@ -191,7 +192,7 @@ function createPanZoom(domElement, options) {
     }
 
     // y axis:
-    diff = boundingBox.top - clientRect.bottom;
+    diff = boundingBox.top - clientRect.bottom
     if (diff > 0) {
       // we adjust transform, so that it matches exactly our boinding box:
       // transform.y = boundingBox.top - (boundingBox.height + boundingBox.y) * transform.scale =>
@@ -201,7 +202,7 @@ function createPanZoom(domElement, options) {
       adjusted = true
     }
 
-    diff = boundingBox.bottom - clientRect.top;
+    diff = boundingBox.bottom - clientRect.top
     if (diff < 0) {
       transform.y += diff
       adjusted = true
@@ -257,14 +258,20 @@ function createPanZoom(domElement, options) {
 
   function zoomByRatio(clientX, clientY, ratio) {
     if (isNaN(clientX) || isNaN(clientY) || isNaN(ratio)) {
-      throw new Error('zoom requires valid numbers');
+      throw new Error('zoom requires valid numbers')
     }
 
     var newScale = transform.scale * ratio
 
-    if (newScale > maxZoom || newScale < minZoom) {
-      // outside of allowed bounds
-      return
+    if (newScale < minZoom) {
+      if (transform.scale === minZoom) return;
+
+      ratio = minZoom / transform.scale
+    }
+    if (newScale > maxZoom) {
+      if (transform.scale === maxZoom) return;
+
+      ratio = maxZoom / transform.scale
     }
 
     var parentScale = 1
@@ -346,7 +353,7 @@ function createPanZoom(domElement, options) {
     owner.removeEventListener('dblclick', onDoubleClick)
     if (frameAnimation) {
       window.cancelAnimationFrame(frameAnimation)
-      frameAnimation = 0;
+      frameAnimation = 0
     }
 
     smoothScroll.cancel()
@@ -376,7 +383,7 @@ function createPanZoom(domElement, options) {
     isDirty = false
 
     // TODO: Should I allow to cancel this?
-    domController.applyTransform(transform);
+    domController.applyTransform(transform)
 
     triggerEvent('transform')
     frameAnimation = 0
@@ -421,19 +428,19 @@ function createPanZoom(domElement, options) {
 
   function onTouch(e) {
     if (e.touches.length === 1) {
-      return handleSignleFingerTouch(e, e.touches[0])
+      return handleSingleFingerTouch(e, e.touches[0])
     } else if (e.touches.length === 2) {
       // handleTouchMove() will care about pinch zoom.
       e.stopPropagation()
       e.preventDefault()
 
       pinchZoomLength = getPinchZoomLength(e.touches[0], e.touches[1])
-      multitouch  = true;
+      multitouch  = true
       startTouchListenerIfNeeded()
     }
   }
 
-  function handleSignleFingerTouch(e) {
+  function handleSingleFingerTouch(e) {
     e.stopPropagation()
     e.preventDefault()
 
@@ -470,19 +477,25 @@ function createPanZoom(domElement, options) {
       internalMoveBy(dx, dy)
     } else if (e.touches.length === 2) {
       // it's a zoom, let's find direction
-      multitouch = true;
+      multitouch = true
       var t1 = e.touches[0]
       var t2 = e.touches[1]
       var currentPinchLength = getPinchZoomLength(t1, t2)
 
-      var delta = 0
-      if (currentPinchLength < pinchZoomLength) {
-        delta = 1
-      } else if (currentPinchLength > pinchZoomLength) {
-        delta = -1
-      }
+      var scaleMultiplier = 1
 
-      var scaleMultiplier = getScaleMultiplier(delta)
+      if (realPinch) {
+        scaleMultiplier = currentPinchLength / pinchZoomLength
+      } else {
+        var delta = 0
+        if (currentPinchLength < pinchZoomLength) {
+          delta = 1
+        } else if (currentPinchLength > pinchZoomLength) {
+          delta = -1
+        }
+
+        scaleMultiplier = getScaleMultiplier(delta)
+      }
 
       mouseX = (t1.clientX + t2.clientX)/2
       mouseY = (t1.clientY + t2.clientY)/2
@@ -514,8 +527,8 @@ function createPanZoom(domElement, options) {
   }
 
   function getPinchZoomLength(finger1, finger2) {
-    return (finger1.clientX - finger2.clientX) * (finger1.clientX - finger2.clientX) +
-      (finger1.clientY - finger2.clientY) * (finger1.clientY - finger2.clientY)
+    return Math.sqrt((finger1.clientX - finger2.clientX) * (finger1.clientX - finger2.clientX) +
+      (finger1.clientY - finger2.clientY) * (finger1.clientY - finger2.clientY))
   }
 
   function onDoubleClick(e) {
@@ -530,7 +543,7 @@ function createPanZoom(domElement, options) {
       // modern browsers will fire mousedown for touch events too
       // we do not want this: touch is handled separately.
       e.stopPropagation()
-      return false;
+      return false
     }
     // for IE, left click == 1
     // for Firefox, left click == 0

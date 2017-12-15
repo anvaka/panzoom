@@ -290,8 +290,8 @@ function createPanZoom(domElement, options) {
     transform.x = x - ratio * (x - transform.x)
     transform.y = y - ratio * (y - transform.y)
 
-    var transformAdjusted = keepTransformInsideBounds()
-    if (!transformAdjusted) transform.scale *= ratio
+    keepTransformInsideBounds()
+    transform.scale *= ratio
 
     triggerEvent('zoom')
 

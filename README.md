@@ -120,6 +120,54 @@ panzoom(document.getElementById('g4'), {
 });
 ```
 
+## Min Max Zoom
+
+You can set min and max zoom, by passing optional `minZoom` and `maxZoom` argument:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  maxZoom: 1,
+  minZoom: 0.1
+});
+```
+
+## Disable Smooth Scroll
+
+You can disable smooth scroll, by passing optional `smoothScroll` argument:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  smoothScroll: false
+});
+```
+
+## Adjust Double Click Zoom
+
+You can adjust the double click zoom multiplier, by passing optional `zoomDoubleClickSpeed` argument.
+
+When double clicking, zoom is multiplied by `zoomDoubleClickSpeed`, which means that a value of 1 will disable double click zoom completely. 
+
+``` js
+panzoom(document.getElementById('g4'), {
+  zoomDoubleClickSpeed: 1, 
+});
+```
+
+## Set Initial Position And Zoom
+
+You can set the initial position and zoom, by chaining the `zoomAbs` function with x position, y position and zoom as arguments:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  maxZoom: 1,
+  minZoom: 0.1
+}).zoomAbs(
+  300, // initial x position
+  500, // initial y position
+  0.1  // initial zoom 
+);
+```
+
 # license
 
 MIT

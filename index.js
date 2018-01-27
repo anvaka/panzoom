@@ -111,6 +111,10 @@ function createPanZoom(domElement, options) {
     var h = owner.clientHeight
     var rectWidth = rect.right - rect.left
     var rectHeight = rect.bottom - rect.top
+    if (!Number.isFinite(rectWidth) || !Number.isFinite(rectHeight)) {
+      throw new Error('Invalid rectangle');
+    }
+
     var dh = h/rectHeight
     var dw = w/rectWidth
     var scale = Math.min(dw, dh)
@@ -273,19 +277,22 @@ function createPanZoom(domElement, options) {
       ratio = maxZoom / transform.scale
     }
 
-    var parentScale = 1
+    var parentScaleX = 1
+    var parentScaleY = 1
     var parentOffsetX = 0
     var parentOffsetY = 0
 
     if (domController.getScreenCTM) {
+      // TODO: This is likely need to be done for all mouse/touch events.
       var parentCTM = domController.getScreenCTM()
-      parentScale = parentCTM.a
+      parentScaleX = parentCTM.a
+      parentScaleY = parentCTM.b
       parentOffsetX = parentCTM.e
       parentOffsetY = parentCTM.f
     }
 
-    var x = clientX * parentScale - parentOffsetX
-    var y = clientY * parentScale - parentOffsetY
+    var x = clientX * parentScaleX - parentOffsetX
+    var y = clientY * parentScaleY - parentOffsetY
 
     transform.x = x - ratio * (x - transform.x)
     transform.y = y - ratio * (y - transform.y)

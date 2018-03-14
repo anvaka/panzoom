@@ -47,6 +47,7 @@ function createPanZoom(domElement, options) {
   var transform = new Transform()
 
   var realPinch = typeof options.realPinch === 'boolean' ? options.realPinch : false
+  var allowTaps = typeof options.allowTaps === 'boolean' ? options.allowTaps : false
   var bounds = options.bounds
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
@@ -92,7 +93,7 @@ function createPanZoom(domElement, options) {
 
   var multitouch
 
-  listenForEvents()
+  listenForEvents(allowTaps)
 
   return {
     dispose: dispose,
@@ -370,10 +371,10 @@ function createPanZoom(domElement, options) {
     triggerPanEnd()
   }
 
-  function listenForEvents() {
+  function listenForEvents(allowTaps) {
     owner.addEventListener('mousedown', onMouseDown)
     owner.addEventListener('dblclick', onDoubleClick)
-    owner.addEventListener('touchstart', onTouch)
+    owner.addEventListener('touchstart', function(e){onTouch(e, allowTaps)})
     owner.addEventListener('keydown', onKeyDown)
     wheel.addWheelListener(owner, onMouseWheel)
 
@@ -432,9 +433,9 @@ function createPanZoom(domElement, options) {
     }
   }
 
-  function onTouch(e) {
+  function onTouch(e, allowTaps) {
     if (e.touches.length === 1) {
-      return handleSingleFingerTouch(e, e.touches[0])
+      return handleSingleFingerTouch(e, allowTaps)
     } else if (e.touches.length === 2) {
       // handleTouchMove() will care about pinch zoom.
       e.stopPropagation()
@@ -446,10 +447,11 @@ function createPanZoom(domElement, options) {
     }
   }
 
-  function handleSingleFingerTouch(e) {
-    e.stopPropagation()
-    e.preventDefault()
-
+  function handleSingleFingerTouch(e, allowTaps) {
+    if (!allowTaps) {
+      e.stopPropagation()
+      e.preventDefault()
+    }
     var touch = e.touches[0]
     mouseX = touch.clientX
     mouseY = touch.clientY

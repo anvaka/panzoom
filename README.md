@@ -168,6 +168,16 @@ panzoom(document.getElementById('g4'), {
 );
 ```
 
+## Allowing Taps to propagate
+
+To allow taps to fire onClick events and propagate up, you can set the `allowTaps` option to `true`.
+
+``` js
+panzoom(document.getElementById('g4'), {
+  allowTaps: true, 
+});
+```
+
 # license
 
 MIT

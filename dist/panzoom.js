@@ -1,4 +1,4 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.panzoom = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.panzoom = f()}})(function(){var define,module,exports;return (function(){function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s}return e})()({1:[function(require,module,exports){
 /* globals SVGElement */
 /**
  * Allows to drag and zoom svg elements
@@ -112,6 +112,10 @@ function createPanZoom(domElement, options) {
     var h = owner.clientHeight
     var rectWidth = rect.right - rect.left
     var rectHeight = rect.bottom - rect.top
+    if (!Number.isFinite(rectWidth) || !Number.isFinite(rectHeight)) {
+      throw new Error('Invalid rectangle');
+    }
+
     var dh = h/rectHeight
     var dw = w/rectWidth
     var scale = Math.min(dw, dh)
@@ -274,19 +278,22 @@ function createPanZoom(domElement, options) {
       ratio = maxZoom / transform.scale
     }
 
-    var parentScale = 1
+    var parentScaleX = 1
+    var parentScaleY = 1
     var parentOffsetX = 0
     var parentOffsetY = 0
 
     if (domController.getScreenCTM) {
+      // TODO: This is likely need to be done for all mouse/touch events.
       var parentCTM = domController.getScreenCTM()
-      parentScale = parentCTM.a
+      parentScaleX = parentCTM.a
+      parentScaleY = parentCTM.b
       parentOffsetX = parentCTM.e
       parentOffsetY = parentCTM.f
     }
 
-    var x = clientX * parentScale - parentOffsetX
-    var y = clientY * parentScale - parentOffsetY
+    var x = clientX * parentScaleX - parentOffsetX
+    var y = clientY * parentScaleY - parentOffsetY
 
     transform.x = x - ratio * (x - transform.x)
     transform.y = y - ratio * (y - transform.y)
@@ -427,23 +434,29 @@ function createPanZoom(domElement, options) {
   }
 
   function onTouch(e) {
+    beforeTouch(e);
     if (e.touches.length === 1) {
       return handleSingleFingerTouch(e, e.touches[0])
     } else if (e.touches.length === 2) {
       // handleTouchMove() will care about pinch zoom.
-      e.stopPropagation()
-      e.preventDefault()
-
       pinchZoomLength = getPinchZoomLength(e.touches[0], e.touches[1])
       multitouch  = true
       startTouchListenerIfNeeded()
     }
   }
 
-  function handleSingleFingerTouch(e) {
+  function beforeTouch(e) {
+    if (options.onTouch && !options.onTouch(e)) {
+      // if they return `false` from onTouch, we don't want to stop
+      // events propagation. Fixes https://github.com/anvaka/panzoom/issues/12
+      return
+    }
+
     e.stopPropagation()
     e.preventDefault()
+  }
 
+  function handleSingleFingerTouch(e) {
     var touch = e.touches[0]
     mouseX = touch.clientX
     mouseY = touch.clientY
@@ -709,6 +722,7 @@ function rigidScroll() {
     cancel: noop
   }
 }
+
 },{"./lib/createEvent.js":2,"./lib/domController.js":3,"./lib/kinetic.js":4,"./lib/svgController.js":5,"./lib/textSlectionInterceptor.js":6,"./lib/transform.js":7,"amator":8,"wheel":10}],2:[function(require,module,exports){
 /* global Event */
 module.exports = createEvent;

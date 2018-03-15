@@ -433,23 +433,29 @@ function createPanZoom(domElement, options) {
   }
 
   function onTouch(e) {
+    beforeTouch(e);
     if (e.touches.length === 1) {
       return handleSingleFingerTouch(e, e.touches[0])
     } else if (e.touches.length === 2) {
       // handleTouchMove() will care about pinch zoom.
-      e.stopPropagation()
-      e.preventDefault()
-
       pinchZoomLength = getPinchZoomLength(e.touches[0], e.touches[1])
       multitouch  = true
       startTouchListenerIfNeeded()
     }
   }
 
-  function handleSingleFingerTouch(e) {
+  function beforeTouch(e) {
+    if (options.onTouch && !options.onTouch(e)) {
+      // if they return `false` from onTouch, we don't want to stop
+      // events propagation. Fixes https://github.com/anvaka/panzoom/issues/12
+      return
+    }
+
     e.stopPropagation()
     e.preventDefault()
+  }
 
+  function handleSingleFingerTouch(e) {
     var touch = e.touches[0]
     mouseX = touch.clientX
     mouseY = touch.clientY

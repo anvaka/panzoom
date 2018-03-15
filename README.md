@@ -168,6 +168,26 @@ panzoom(document.getElementById('g4'), {
 );
 ```
 
+## Handling touch events
+
+The library will handle `ontouch` events very aggressively, it will `preventDefault`, and
+`stopPropagation` for the touch events inside container. [Sometimes](https://github.com/anvaka/panzoom/issues/12) this is not a desirable behavior.
+
+If you want to take care about this yourself, you can pass `onTouch` callback to the options object:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  onTouch: function(e) {
+    // `e` - is current touch event.
+
+    return false; // tells the library to not preventDefault.
+  }
+});
+```
+
+Note: if you don't `preventDefault` yourself - make sure you test the page behavior on iOS devices.
+Sometimes this may cause page to [bounce undesirably](https://stackoverflow.com/questions/23862204/disable-ios-safari-elastic-scrolling). 
+
 # license
 
 MIT

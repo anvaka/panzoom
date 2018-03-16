@@ -4,7 +4,7 @@
   "description": "Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "tap test/*.js",
     "build": "browserify -s panzoom ./index.js > dist/panzoom.js && uglifyjs dist/panzoom.js > dist/panzoom.min.js"
   },
   "keywords": [
@@ -22,5 +22,9 @@
   "dependencies": {
     "amator": "^1.0.1",
     "wheel": "0.0.4"
+  },
+  "devDependencies": {
+    "jsdom": "^11.6.2",
+    "tap": "^11.1.2"
   }
 }

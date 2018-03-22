@@ -286,7 +286,7 @@ function createPanZoom(domElement, options) {
       // TODO: This is likely need to be done for all mouse/touch events.
       var parentCTM = domController.getScreenCTM()
       parentScaleX = parentCTM.a
-      parentScaleY = parentCTM.b
+      parentScaleY = parentCTM.d
       parentOffsetX = parentCTM.e
       parentOffsetY = parentCTM.f
     }

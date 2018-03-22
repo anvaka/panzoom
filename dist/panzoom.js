@@ -142,6 +142,11 @@ function createPanZoom(domElement, options) {
       h = owner.clientHeight
     }
     var bbox = domController.getBBox()
+    if (bbox.width === 0 || bbox.height === 0) {
+      // we probably do not have any elements in the SVG
+      // just bail out;
+      return;
+    }
     var dh = h/bbox.height
     var dw = w/bbox.width
     var scale = Math.min(dw, dh)

@@ -19,7 +19,7 @@ module.exports = createPanZoom
 
 /**
  * Creates a new instance of panzoom, so that an object can be panned and zoomed
- * 
+ *
  * @param {DOMElement} domElement where panzoom should be attached.
  * @param {Object} options that configure behavior.
  */
@@ -80,7 +80,7 @@ function createPanZoom(domElement, options) {
   var smoothScroll
   if ('smoothScroll' in options && !options.smoothScroll) {
     // If user explicitly asked us not to use smooth scrolling, we obey
-    smoothScroll = rigidScroll() 
+    smoothScroll = rigidScroll()
   } else {
     // otherwise we use forward smoothScroll settings to kinetic API
     // which makes scroll smoothing.
@@ -380,7 +380,7 @@ function createPanZoom(domElement, options) {
     owner.addEventListener('dblclick', onDoubleClick)
     owner.addEventListener('touchstart', onTouch)
     owner.addEventListener('keydown', onKeyDown)
-    wheel.addWheelListener(owner, onMouseWheel)
+    wheel.addWheelListener(domElement, onMouseWheel)
 
     makeDirty()
   }

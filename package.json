@@ -20,11 +20,11 @@
     "url": "https://github.com/anvaka/panzoom"
   },
   "dependencies": {
-    "amator": "^1.0.1",
-    "wheel": "0.0.4"
+    "amator": "^1.1.0",
+    "wheel": "0.0.5"
   },
   "devDependencies": {
     "jsdom": "^11.6.2",
-    "tap": "^11.1.2"
+    "tap": "^11.1.3"
   }
 }

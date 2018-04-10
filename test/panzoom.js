@@ -26,7 +26,7 @@ test('it updates transformation matrix on wheel event', t => {
 
   var panzoom = createPanzoom(content);
   var wheelEvent = new dom.window.WheelEvent('wheel', {deltaY: 1});
-  content.dispatchEvent(wheelEvent);
+  document.body.dispatchEvent(wheelEvent);
   setTimeout(() => {
     var transform = panzoom.getTransform();
 

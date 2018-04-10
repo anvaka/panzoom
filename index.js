@@ -46,6 +46,10 @@ function createPanZoom(domElement, options) {
   var isDirty = false
   var transform = new Transform()
 
+  if (domController.initTransform) {
+    domController.initTransform(transform)
+  }
+
   var realPinch = typeof options.realPinch === 'boolean' ? options.realPinch : false
   var bounds = options.bounds
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
@@ -358,7 +362,7 @@ function createPanZoom(domElement, options) {
   }
 
   function dispose() {
-    wheel.removeWheelListener(domElement, onMouseWheel)
+    wheel.removeWheelListener(owner, onMouseWheel)
     owner.removeEventListener('mousedown', onMouseDown)
     owner.removeEventListener('keydown', onKeyDown)
     owner.removeEventListener('dblclick', onDoubleClick)
@@ -380,7 +384,10 @@ function createPanZoom(domElement, options) {
     owner.addEventListener('dblclick', onDoubleClick)
     owner.addEventListener('touchstart', onTouch)
     owner.addEventListener('keydown', onKeyDown)
-    wheel.addWheelListener(domElement, onMouseWheel)
+
+    // Need to listen on the owner container, so that we are not limited
+    // by the size of the scrollable domElement
+    wheel.addWheelListener(owner, onMouseWheel)
 
     makeDirty()
   }

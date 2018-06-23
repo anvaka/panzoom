@@ -631,7 +631,14 @@ function createPanZoom(domElement, options) {
     var scaleMultiplier = getScaleMultiplier(e.deltaY)
 
     if (scaleMultiplier !== 1) {
-      publicZoomTo(e.clientX, e.clientY, scaleMultiplier)
+      var offsetX = e.offsetX
+      var offsetY = e.offsetY
+      if (typeof offsetX === 'undefined') {
+        var rect = e.target.getBoundingClientRect()
+        offsetX = e.clientX - rect.left
+        offsetY = e.clientY - rect.top
+      }
+      publicZoomTo(offsetX, offsetY, scaleMultiplier)
       e.preventDefault()
     }
   }

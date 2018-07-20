@@ -42,6 +42,9 @@ function createPanZoom(domElement, options) {
     throw new Error('Cannot create panzoom for the current type of dom element')
   }
   var owner = domController.getOwner()
+  // just to avoid GC pressure, every time we do intermediate transform
+  // we return this object. For internal use only. Never give it back to the consumer of this library
+  var storedCTMResult = {x: 0, y: 0}
 
   var isDirty = false
   var transform = new Transform()
@@ -111,20 +114,37 @@ function createPanZoom(domElement, options) {
 
   function showRectangle(rect) {
     // TODO: this duplicates autocenter. I think autocenter should go.
-    var w = owner.clientWidth
-    var h = owner.clientHeight
+    var size = transformToScreen(owner.clientWidth, owner.clientHeight)
+
     var rectWidth = rect.right - rect.left
     var rectHeight = rect.bottom - rect.top
     if (!Number.isFinite(rectWidth) || !Number.isFinite(rectHeight)) {
       throw new Error('Invalid rectangle');
     }
 
-    var dh = h/rectHeight
-    var dw = w/rectWidth
+    var dw = size.x/rectWidth
+    var dh = size.y/rectHeight
     var scale = Math.min(dw, dh)
-    transform.x = -(rect.left + rectWidth/2) * scale + w/2
-    transform.y = -(rect.top + rectHeight/2) * scale + h/2
+    transform.x = -(rect.left + rectWidth/2) * scale + size.x/2
+    transform.y = -(rect.top + rectHeight/2) * scale + size.y/2
     transform.scale = scale
+  }
+
+  function transformToScreen(x, y) {
+    if (domController.getScreenCTM) {
+      var parentCTM = domController.getScreenCTM()
+      var parentScaleX = parentCTM.a
+      var parentScaleY = parentCTM.d
+      var parentOffsetX = parentCTM.e
+      var parentOffsetY = parentCTM.f
+      storedCTMResult.x = x * parentScaleX - parentOffsetX
+      storedCTMResult.y = y * parentScaleY - parentOffsetY
+    } else {
+      storedCTMResult.x = x
+      storedCTMResult.y = y
+    }
+
+    return storedCTMResult
   }
 
   function autocenter() {
@@ -206,7 +226,7 @@ function createPanZoom(domElement, options) {
     // y axis:
     diff = boundingBox.top - clientRect.bottom
     if (diff > 0) {
-      // we adjust transform, so that it matches exactly our boinding box:
+      // we adjust transform, so that it matches exactly our bounding box:
       // transform.y = boundingBox.top - (boundingBox.height + boundingBox.y) * transform.scale =>
       // transform.y = boundingBox.top - (clientRect.bottom - transform.y) =>
       // transform.y = diff + transform.y =>
@@ -286,25 +306,10 @@ function createPanZoom(domElement, options) {
       ratio = maxZoom / transform.scale
     }
 
-    var parentScaleX = 1
-    var parentScaleY = 1
-    var parentOffsetX = 0
-    var parentOffsetY = 0
+    var size = transformToScreen(clientX, clientY)
 
-    if (domController.getScreenCTM) {
-      // TODO: This is likely need to be done for all mouse/touch events.
-      var parentCTM = domController.getScreenCTM()
-      parentScaleX = parentCTM.a
-      parentScaleY = parentCTM.d
-      parentOffsetX = parentCTM.e
-      parentOffsetY = parentCTM.f
-    }
-
-    var x = clientX * parentScaleX - parentOffsetX
-    var y = clientY * parentScaleY - parentOffsetY
-
-    transform.x = x - ratio * (x - transform.x)
-    transform.y = y - ratio * (y - transform.y)
+    transform.x = size.x - ratio * (size.x - transform.x)
+    transform.y = size.y - ratio * (size.y - transform.y)
 
     var transformAdjusted = keepTransformInsideBounds()
     if (!transformAdjusted) transform.scale *= ratio
@@ -323,6 +328,7 @@ function createPanZoom(domElement, options) {
     var parent = ui.ownerSVGElement
     if (!parent) throw new Error('ui element is required to be within the scene')
 
+    // TODO: should i use controller's screen CTM?
     var clientRect = ui.getBoundingClientRect()
     var cx = clientRect.left + clientRect.width/2
     var cy = clientRect.top + clientRect.height/2
@@ -574,8 +580,9 @@ function createPanZoom(domElement, options) {
     var isLeftButton = ((e.button === 1 && window.event !== null) || e.button === 0)
     if (!isLeftButton) return
 
-    mouseX = e.clientX
-    mouseY = e.clientY
+    var point = transformToScreen(e.clientX, e.clientY)
+    mouseX = point.x
+    mouseY = point.y
 
     // We need to listen on document itself, since mouse can go outside of the
     // window, and we will loose it
@@ -593,11 +600,12 @@ function createPanZoom(domElement, options) {
 
     triggerPanStart()
 
-    var dx = e.clientX - mouseX
-    var dy = e.clientY - mouseY
+    var point = transformToScreen(e.clientX, e.clientY)
+    var dx = point.x - mouseX
+    var dy = point.y - mouseY
 
-    mouseX = e.clientX
-    mouseY = e.clientY
+    mouseX = point.x
+    mouseY = point.y
 
     internalMoveBy(dx, dy)
   }

@@ -3,7 +3,7 @@
  * Allows to drag and zoom svg elements
  */
 var wheel = require('wheel')
-var animate = require('amator');
+var animate = require('amator')
 var kinetic = require('./lib/kinetic.js')
 var createEvent = require('./lib/createEvent.js')
 var preventTextSelection = require('./lib/textSelectionInterceptor.js')()
@@ -475,8 +475,9 @@ function createPanZoom(domElement, options) {
 
   function handleSingleFingerTouch(e) {
     var touch = e.touches[0]
-    mouseX = touch.clientX
-    mouseY = touch.clientY
+    let offset = getTouchOffsetXY(touch, e.target)
+    mouseX = offset.x
+    mouseY = offset.y
 
     startTouchListenerIfNeeded()
   }
@@ -496,15 +497,18 @@ function createPanZoom(domElement, options) {
       e.stopPropagation()
       var touch = e.touches[0]
 
-      var dx = touch.clientX - mouseX
-      var dy = touch.clientY - mouseY
+      let offset = getTouchOffsetXY(touch, e.target)
+
+      var dx = offset.x - mouseX
+      var dy = offset.y - mouseY
 
       if (dx !== 0 && dy !== 0) {
         triggerPanStart()
       }
-      mouseX = touch.clientX
-      mouseY = touch.clientY
-      internalMoveBy(dx, dy)
+      mouseX = offset.x
+      mouseY = offset.y
+      var point = transformToScreen(dx, dy)
+      internalMoveBy(point.x, point.y)
     } else if (e.touches.length === 2) {
       // it's a zoom, let's find direction
       multitouch = true
@@ -540,8 +544,9 @@ function createPanZoom(domElement, options) {
 
   function handleTouchEnd(e) {
     if (e.touches.length > 0) {
-      mouseX = e.touches[0].clientX
-      mouseY = e.touches[0].clientY
+      let offset = getTouchOffsetXY(e.touches[0], e.target)
+      mouseX = offset.x
+      mouseY = offset.y
     } else {
       var now = new Date()
       if (now - lastTouchEndTime < doubleTapSpeedInMS) {
@@ -562,7 +567,8 @@ function createPanZoom(domElement, options) {
   }
 
   function onDoubleClick(e) {
-    smoothZoom(e.clientX, e.clientY, zoomDoubleClickSpeed)
+    var offset = getOffsetXY(e)
+    smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
 
     e.preventDefault()
     e.stopPropagation()
@@ -580,7 +586,8 @@ function createPanZoom(domElement, options) {
     var isLeftButton = ((e.button === 1 && window.event !== null) || e.button === 0)
     if (!isLeftButton) return
 
-    var point = transformToScreen(e.clientX, e.clientY)
+    var offset = getOffsetXY(e);
+    var point = transformToScreen(offset.x, offset.y)
     mouseX = point.x
     mouseY = point.y
 
@@ -600,7 +607,8 @@ function createPanZoom(domElement, options) {
 
     triggerPanStart()
 
-    var point = transformToScreen(e.clientX, e.clientY)
+    var offset = getOffsetXY(e);
+    var point = transformToScreen(offset.x, offset.y)
     var dx = point.x - mouseX
     var dy = point.y - mouseY
 
@@ -639,16 +647,30 @@ function createPanZoom(domElement, options) {
     var scaleMultiplier = getScaleMultiplier(e.deltaY)
 
     if (scaleMultiplier !== 1) {
-      var offsetX = e.offsetX
-      var offsetY = e.offsetY
-      if (typeof offsetX === 'undefined') {
-        var rect = e.target.getBoundingClientRect()
-        offsetX = e.clientX - rect.left
-        offsetY = e.clientY - rect.top
-      }
-      publicZoomTo(offsetX, offsetY, scaleMultiplier)
+      var offset = getOffsetXY(e)
+      publicZoomTo(offset.x, offset.y, scaleMultiplier)
       e.preventDefault()
     }
+  }
+
+  function getOffsetXY(e) {
+    var offsetX = e.offsetX
+    var offsetY = e.offsetY
+    if (typeof offsetX === 'undefined') {
+      var rect = e.target.getBoundingClientRect()
+      offsetX = e.clientX - rect.left
+      offsetY = e.clientY - rect.top
+    }
+
+    return {x: offsetX, y: offsetY};
+  }
+
+  function getTouchOffsetXY(touch, el) {
+    var rect = el.getBoundingClientRect()
+    var offsetX = touch.clientX - rect.left
+    var offsetY = touch.clientY - rect.top
+
+    return {x: offsetX, y: offsetY};
   }
 
   function smoothZoom(clientX, clientY, scaleMultiplier) {

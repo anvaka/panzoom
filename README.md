@@ -141,6 +141,8 @@ panzoom(document.getElementById('g4'), {
 });
 ```
 
+With this setting the momentum is disabled.
+
 ## Adjust Double Click Zoom
 
 You can adjust the double click zoom multiplier, by passing optional `zoomDoubleClickSpeed` argument.

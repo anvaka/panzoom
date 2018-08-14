@@ -161,8 +161,9 @@ function createPanZoom(domElement, options) {
       h = sceneBoundingBox.bottom - sceneBoundingBox.top
     } else {
       // otherwise just use whatever space we have
-      w = owner.clientWidth
-      h = owner.clientHeight
+      var ownerRect = owner.getBoundingClientRect();
+      w = ownerRect.width
+      h = ownerRect.height
     }
     var bbox = domController.getBBox()
     if (bbox.width === 0 || bbox.height === 0) {
@@ -250,8 +251,9 @@ function createPanZoom(domElement, options) {
 
     if (typeof bounds === 'boolean') {
       // for boolean type we use parent container bounds
-      var sceneWidth = owner.clientWidth
-      var sceneHeight = owner.clientHeight
+      var ownerRect = owner.getBoundingClientRect()
+      var sceneWidth = ownerRect.width
+      var sceneHeight = ownerRect.height
 
       return {
         left: sceneWidth * boundsPadding,
@@ -446,7 +448,8 @@ function createPanZoom(domElement, options) {
 
     if (z) {
       var scaleMultiplier = getScaleMultiplier(z)
-      publicZoomTo(owner.clientWidth/2, owner.clientHeight/2, scaleMultiplier)
+      var ownerRect = owner.getBoundingClientRect()
+      publicZoomTo(ownerRect.width/2, ownerRect.height/2, scaleMultiplier)
     }
   }
 
@@ -475,7 +478,7 @@ function createPanZoom(domElement, options) {
 
   function handleSingleFingerTouch(e) {
     var touch = e.touches[0]
-    let offset = getTouchOffsetXY(touch, e.target)
+    var offset = getOffsetXY(touch)
     mouseX = offset.x
     mouseY = offset.y
 
@@ -492,12 +495,11 @@ function createPanZoom(domElement, options) {
   }
 
   function handleTouchMove(e) {
-
     if (e.touches.length === 1) {
       e.stopPropagation()
       var touch = e.touches[0]
 
-      let offset = getTouchOffsetXY(touch, e.target)
+      var offset = getOffsetXY(touch)
 
       var dx = offset.x - mouseX
       var dy = offset.y - mouseY
@@ -544,7 +546,7 @@ function createPanZoom(domElement, options) {
 
   function handleTouchEnd(e) {
     if (e.touches.length > 0) {
-      let offset = getTouchOffsetXY(e.touches[0], e.target)
+      var offset = getOffsetXY(e.touches[0])
       mouseX = offset.x
       mouseY = offset.y
     } else {
@@ -654,21 +656,11 @@ function createPanZoom(domElement, options) {
   }
 
   function getOffsetXY(e) {
-    var offsetX = e.offsetX
-    var offsetY = e.offsetY
-    if (typeof offsetX === 'undefined') {
-      var rect = e.target.getBoundingClientRect()
-      offsetX = e.clientX - rect.left
-      offsetY = e.clientY - rect.top
-    }
-
-    return {x: offsetX, y: offsetY};
-  }
-
-  function getTouchOffsetXY(touch, el) {
-    var rect = el.getBoundingClientRect()
-    var offsetX = touch.clientX - rect.left
-    var offsetY = touch.clientY - rect.top
+    var offsetX, offsetY;
+    // I tried using e.offsetX, but that gives wrong results for svg, when user clicks on a path.
+    var ownerRect = owner.getBoundingClientRect();
+    offsetX = e.clientX - ownerRect.left
+    offsetY = e.clientY - ownerRect.top
 
     return {x: offsetX, y: offsetY};
   }

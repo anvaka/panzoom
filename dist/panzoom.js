@@ -1,10 +1,10 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.panzoom = f()}})(function(){var define,module,exports;return (function(){function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s}return e})()({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.panzoom = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 /* globals SVGElement */
 /**
  * Allows to drag and zoom svg elements
  */
 var wheel = require('wheel')
-var animate = require('amator');
+var animate = require('amator')
 var kinetic = require('./lib/kinetic.js')
 var createEvent = require('./lib/createEvent.js')
 var preventTextSelection = require('./lib/textSelectionInterceptor.js')()
@@ -43,6 +43,9 @@ function createPanZoom(domElement, options) {
     throw new Error('Cannot create panzoom for the current type of dom element')
   }
   var owner = domController.getOwner()
+  // just to avoid GC pressure, every time we do intermediate transform
+  // we return this object. For internal use only. Never give it back to the consumer of this library
+  var storedCTMResult = {x: 0, y: 0}
 
   var isDirty = false
   var transform = new Transform()
@@ -112,20 +115,37 @@ function createPanZoom(domElement, options) {
 
   function showRectangle(rect) {
     // TODO: this duplicates autocenter. I think autocenter should go.
-    var w = owner.clientWidth
-    var h = owner.clientHeight
+    var size = transformToScreen(owner.clientWidth, owner.clientHeight)
+
     var rectWidth = rect.right - rect.left
     var rectHeight = rect.bottom - rect.top
     if (!Number.isFinite(rectWidth) || !Number.isFinite(rectHeight)) {
       throw new Error('Invalid rectangle');
     }
 
-    var dh = h/rectHeight
-    var dw = w/rectWidth
+    var dw = size.x/rectWidth
+    var dh = size.y/rectHeight
     var scale = Math.min(dw, dh)
-    transform.x = -(rect.left + rectWidth/2) * scale + w/2
-    transform.y = -(rect.top + rectHeight/2) * scale + h/2
+    transform.x = -(rect.left + rectWidth/2) * scale + size.x/2
+    transform.y = -(rect.top + rectHeight/2) * scale + size.y/2
     transform.scale = scale
+  }
+
+  function transformToScreen(x, y) {
+    if (domController.getScreenCTM) {
+      var parentCTM = domController.getScreenCTM()
+      var parentScaleX = parentCTM.a
+      var parentScaleY = parentCTM.d
+      var parentOffsetX = parentCTM.e
+      var parentOffsetY = parentCTM.f
+      storedCTMResult.x = x * parentScaleX - parentOffsetX
+      storedCTMResult.y = y * parentScaleY - parentOffsetY
+    } else {
+      storedCTMResult.x = x
+      storedCTMResult.y = y
+    }
+
+    return storedCTMResult
   }
 
   function autocenter() {
@@ -142,8 +162,9 @@ function createPanZoom(domElement, options) {
       h = sceneBoundingBox.bottom - sceneBoundingBox.top
     } else {
       // otherwise just use whatever space we have
-      w = owner.clientWidth
-      h = owner.clientHeight
+      var ownerRect = owner.getBoundingClientRect();
+      w = ownerRect.width
+      h = ownerRect.height
     }
     var bbox = domController.getBBox()
     if (bbox.width === 0 || bbox.height === 0) {
@@ -207,7 +228,7 @@ function createPanZoom(domElement, options) {
     // y axis:
     diff = boundingBox.top - clientRect.bottom
     if (diff > 0) {
-      // we adjust transform, so that it matches exactly our boinding box:
+      // we adjust transform, so that it matches exactly our bounding box:
       // transform.y = boundingBox.top - (boundingBox.height + boundingBox.y) * transform.scale =>
       // transform.y = boundingBox.top - (clientRect.bottom - transform.y) =>
       // transform.y = diff + transform.y =>
@@ -231,8 +252,9 @@ function createPanZoom(domElement, options) {
 
     if (typeof bounds === 'boolean') {
       // for boolean type we use parent container bounds
-      var sceneWidth = owner.clientWidth
-      var sceneHeight = owner.clientHeight
+      var ownerRect = owner.getBoundingClientRect()
+      var sceneWidth = ownerRect.width
+      var sceneHeight = ownerRect.height
 
       return {
         left: sceneWidth * boundsPadding,
@@ -287,25 +309,10 @@ function createPanZoom(domElement, options) {
       ratio = maxZoom / transform.scale
     }
 
-    var parentScaleX = 1
-    var parentScaleY = 1
-    var parentOffsetX = 0
-    var parentOffsetY = 0
+    var size = transformToScreen(clientX, clientY)
 
-    if (domController.getScreenCTM) {
-      // TODO: This is likely need to be done for all mouse/touch events.
-      var parentCTM = domController.getScreenCTM()
-      parentScaleX = parentCTM.a
-      parentScaleY = parentCTM.d
-      parentOffsetX = parentCTM.e
-      parentOffsetY = parentCTM.f
-    }
-
-    var x = clientX * parentScaleX - parentOffsetX
-    var y = clientY * parentScaleY - parentOffsetY
-
-    transform.x = x - ratio * (x - transform.x)
-    transform.y = y - ratio * (y - transform.y)
+    transform.x = size.x - ratio * (size.x - transform.x)
+    transform.y = size.y - ratio * (size.y - transform.y)
 
     var transformAdjusted = keepTransformInsideBounds()
     if (!transformAdjusted) transform.scale *= ratio
@@ -324,6 +331,7 @@ function createPanZoom(domElement, options) {
     var parent = ui.ownerSVGElement
     if (!parent) throw new Error('ui element is required to be within the scene')
 
+    // TODO: should i use controller's screen CTM?
     var clientRect = ui.getBoundingClientRect()
     var cx = clientRect.left + clientRect.width/2
     var cy = clientRect.top + clientRect.height/2
@@ -441,7 +449,8 @@ function createPanZoom(domElement, options) {
 
     if (z) {
       var scaleMultiplier = getScaleMultiplier(z)
-      publicZoomTo(owner.clientWidth/2, owner.clientHeight/2, scaleMultiplier)
+      var ownerRect = owner.getBoundingClientRect()
+      publicZoomTo(ownerRect.width/2, ownerRect.height/2, scaleMultiplier)
     }
   }
 
@@ -470,8 +479,9 @@ function createPanZoom(domElement, options) {
 
   function handleSingleFingerTouch(e) {
     var touch = e.touches[0]
-    mouseX = touch.clientX
-    mouseY = touch.clientY
+    var offset = getOffsetXY(touch)
+    mouseX = offset.x
+    mouseY = offset.y
 
     startTouchListenerIfNeeded()
   }
@@ -486,20 +496,22 @@ function createPanZoom(domElement, options) {
   }
 
   function handleTouchMove(e) {
-
     if (e.touches.length === 1) {
       e.stopPropagation()
       var touch = e.touches[0]
 
-      var dx = touch.clientX - mouseX
-      var dy = touch.clientY - mouseY
+      var offset = getOffsetXY(touch)
+
+      var dx = offset.x - mouseX
+      var dy = offset.y - mouseY
 
       if (dx !== 0 && dy !== 0) {
         triggerPanStart()
       }
-      mouseX = touch.clientX
-      mouseY = touch.clientY
-      internalMoveBy(dx, dy)
+      mouseX = offset.x
+      mouseY = offset.y
+      var point = transformToScreen(dx, dy)
+      internalMoveBy(point.x, point.y)
     } else if (e.touches.length === 2) {
       // it's a zoom, let's find direction
       multitouch = true
@@ -535,8 +547,9 @@ function createPanZoom(domElement, options) {
 
   function handleTouchEnd(e) {
     if (e.touches.length > 0) {
-      mouseX = e.touches[0].clientX
-      mouseY = e.touches[0].clientY
+      var offset = getOffsetXY(e.touches[0])
+      mouseX = offset.x
+      mouseY = offset.y
     } else {
       var now = new Date()
       if (now - lastTouchEndTime < doubleTapSpeedInMS) {
@@ -557,7 +570,8 @@ function createPanZoom(domElement, options) {
   }
 
   function onDoubleClick(e) {
-    smoothZoom(e.clientX, e.clientY, zoomDoubleClickSpeed)
+    var offset = getOffsetXY(e)
+    smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
 
     e.preventDefault()
     e.stopPropagation()
@@ -575,8 +589,10 @@ function createPanZoom(domElement, options) {
     var isLeftButton = ((e.button === 1 && window.event !== null) || e.button === 0)
     if (!isLeftButton) return
 
-    mouseX = e.clientX
-    mouseY = e.clientY
+    var offset = getOffsetXY(e);
+    var point = transformToScreen(offset.x, offset.y)
+    mouseX = point.x
+    mouseY = point.y
 
     // We need to listen on document itself, since mouse can go outside of the
     // window, and we will loose it
@@ -594,11 +610,13 @@ function createPanZoom(domElement, options) {
 
     triggerPanStart()
 
-    var dx = e.clientX - mouseX
-    var dy = e.clientY - mouseY
+    var offset = getOffsetXY(e);
+    var point = transformToScreen(offset.x, offset.y)
+    var dx = point.x - mouseX
+    var dy = point.y - mouseY
 
-    mouseX = e.clientX
-    mouseY = e.clientY
+    mouseX = point.x
+    mouseY = point.y
 
     internalMoveBy(dx, dy)
   }
@@ -632,9 +650,20 @@ function createPanZoom(domElement, options) {
     var scaleMultiplier = getScaleMultiplier(e.deltaY)
 
     if (scaleMultiplier !== 1) {
-      publicZoomTo(e.clientX, e.clientY, scaleMultiplier)
+      var offset = getOffsetXY(e)
+      publicZoomTo(offset.x, offset.y, scaleMultiplier)
       e.preventDefault()
     }
+  }
+
+  function getOffsetXY(e) {
+    var offsetX, offsetY;
+    // I tried using e.offsetX, but that gives wrong results for svg, when user clicks on a path.
+    var ownerRect = owner.getBoundingClientRect();
+    offsetX = e.clientX - ownerRect.left
+    offsetY = e.clientY - ownerRect.top
+
+    return {x: offsetX, y: offsetY};
   }
 
   function smoothZoom(clientX, clientY, scaleMultiplier) {
@@ -1247,17 +1276,23 @@ function newtonRaphsonIterate (aX, aGuessT, mX1, mX2) {
  return aGuessT;
 }
 
+function LinearEasing (x) {
+  return x;
+}
+
 module.exports = function bezier (mX1, mY1, mX2, mY2) {
   if (!(0 <= mX1 && mX1 <= 1 && 0 <= mX2 && mX2 <= 1)) {
     throw new Error('bezier x values must be in [0, 1] range');
   }
 
+  if (mX1 === mY1 && mX2 === mY2) {
+    return LinearEasing;
+  }
+
   // Precompute samples table
   var sampleValues = float32ArraySupported ? new Float32Array(kSplineTableSize) : new Array(kSplineTableSize);
-  if (mX1 !== mY1 || mX2 !== mY2) {
-    for (var i = 0; i < kSplineTableSize; ++i) {
-      sampleValues[i] = calcBezier(i * kSampleStepSize, mX1, mX2);
-    }
+  for (var i = 0; i < kSplineTableSize; ++i) {
+    sampleValues[i] = calcBezier(i * kSampleStepSize, mX1, mX2);
   }
 
   function getTForX (aX) {
@@ -1285,9 +1320,6 @@ module.exports = function bezier (mX1, mY1, mX2, mY2) {
   }
 
   return function BezierEasing (x) {
-    if (mX1 === mY1 && mX2 === mY2) {
-      return x; // linear
-    }
     // Because JavaScript number are imprecise, we should guarantee the extremes are right.
     if (x === 0) {
       return 0;

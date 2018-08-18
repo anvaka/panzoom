@@ -109,6 +109,7 @@ function createPanZoom(domElement, options) {
     centerOn: centerOn,
     zoomTo: publicZoomTo,
     zoomAbs: zoomAbs,
+    smoothZoom: smoothZoom,
     getTransform: getTransformModel,
     showRectangle: showRectangle
   }

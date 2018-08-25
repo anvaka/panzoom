@@ -818,7 +818,7 @@ function autoRun() {
   tryAttach();
 
   function tryAttach() {
-    var el = document.querySelectorAll(query)
+    var el = document.querySelector(query)
     if (!el) {
       var now = Date.now()
       var elapsed = now - started;

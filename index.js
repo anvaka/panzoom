@@ -798,9 +798,13 @@ function autoRun() {
 
   var scripts = document.getElementsByTagName('script');
   if (!scripts) return;
+  var panzoomScript;
 
-  var index = scripts.length - 1;
-  var panzoomScript = scripts[index];
+  Array.from(scripts).forEach(x => {
+    if (x.src && x.src.match(/\bpanzoom(\.min)?\.js/)) {
+      panzoomScript = x
+    }
+  })
 
   if (!panzoomScript) return;
 
@@ -813,7 +817,7 @@ function autoRun() {
   tryAttach();
 
   function tryAttach() {
-    var el = document.querySelector(query)
+    var el = document.querySelectorAll(query)
     if (!el) {
       var now = Date.now()
       var elapsed = now - started;

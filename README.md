@@ -143,6 +143,50 @@ panzoom(document.getElementById('g4'), {
 
 With this setting the momentum is disabled.
 
+## Pause/resume the panzoom
+
+You can pause and resume the panzoom by calling the following methods:
+
+``` js
+var controller = panzoom(document.getElementById('g4'));
+
+controller.isPaused(); //  returns false
+controller.pause();    //  Pauses event handling
+controller.isPaused(); //  returns true now
+controller.resume();   //  Resume panzoom
+controller.isPaused(); //  returns false again
+```
+
+## Script attachment
+
+If you want to quickly play with panzoom without using javascript, you can configure it via
+`script` tag:
+
+``` html
+<!-- this is your html file -->
+<!DOCTYPE html>
+<html>
+<head>
+  <script src='https://cdn.rawgit.com/anvaka/panzoom/v6.1.0/dist/panzoom.min.js'
+    query='#scene' name='pz'></script>
+</head>
+<body>
+  <svg>
+    <!-- this is the draggable root -->
+    <g id='scene'> 
+      <circle cx='10' cy='10' r='5' fill='pink'></circle>
+    </g>
+  </svg>
+</body>
+</html>
+```
+
+Most importantly, you can see `query` attribute that points to CSS selector. Once the element is found 
+panzoom is attached to this element. The controller will become available under `window.pz` name. And you
+can pass additional options to the panzoom via attributes prefixed with `pz-`.
+
+Here is a demo: [Script based attributes](https://anvaka.github.io/panzoom/demo/attach-via-script.html)
+
 ## Adjust Double Click Zoom
 
 You can adjust the double click zoom multiplier, by passing optional `zoomDoubleClickSpeed` argument.

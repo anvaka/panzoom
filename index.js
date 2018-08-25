@@ -800,7 +800,7 @@ function autoRun() {
   if (!scripts) return;
   var panzoomScript;
 
-  Array.from(scripts).forEach(x => {
+  Array.from(scripts).forEach(function(x) {
     if (x.src && x.src.match(/\bpanzoom(\.min)?\.js/)) {
       panzoomScript = x
     }

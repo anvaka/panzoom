@@ -1,4 +1,4 @@
-# panzoom
+# panzoom [![Build Status](https://travis-ci.org/anvaka/panzoom.svg)](https://travis-ci.org/anvaka/panzoom)
 
 Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).
 
@@ -20,7 +20,7 @@ npm install panzoom --save
 Or download from CDN:
 
 ```
-https://cdn.rawgit.com/anvaka/panzoom/v3.0.0/dist/panzoom.min.js
+<script src='https://cdn.rawgit.com/anvaka/panzoom/v4.4.0/dist/panzoom.min.js'></script>
 ```
 
 If you download from CDN the library will be available under `panzoom` global name.
@@ -119,6 +119,120 @@ panzoom(document.getElementById('g4'), {
   zoomSpeed: 0.065 // 6.5% per mouse wheel event
 });
 ```
+
+## Min Max Zoom
+
+You can set min and max zoom, by passing optional `minZoom` and `maxZoom` argument:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  maxZoom: 1,
+  minZoom: 0.1
+});
+```
+
+## Disable Smooth Scroll
+
+You can disable smooth scroll, by passing optional `smoothScroll` argument:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  smoothScroll: false
+});
+```
+
+With this setting the momentum is disabled.
+
+## Pause/resume the panzoom
+
+You can pause and resume the panzoom by calling the following methods:
+
+``` js
+var controller = panzoom(document.getElementById('g4'));
+
+controller.isPaused(); //  returns false
+controller.pause();    //  Pauses event handling
+controller.isPaused(); //  returns true now
+controller.resume();   //  Resume panzoom
+controller.isPaused(); //  returns false again
+```
+
+## Script attachment
+
+If you want to quickly play with panzoom without using javascript, you can configure it via
+`script` tag:
+
+``` html
+<!-- this is your html file -->
+<!DOCTYPE html>
+<html>
+<head>
+  <script src='https://cdn.rawgit.com/anvaka/panzoom/v6.1.0/dist/panzoom.min.js'
+    query='#scene' name='pz'></script>
+</head>
+<body>
+  <svg>
+    <!-- this is the draggable root -->
+    <g id='scene'> 
+      <circle cx='10' cy='10' r='5' fill='pink'></circle>
+    </g>
+  </svg>
+</body>
+</html>
+```
+
+Most importantly, you can see `query` attribute that points to CSS selector. Once the element is found 
+panzoom is attached to this element. The controller will become available under `window.pz` name. And you
+can pass additional options to the panzoom via attributes prefixed with `pz-`.
+
+Here is a demo: [Script based attributes](https://anvaka.github.io/panzoom/demo/attach-via-script.html)
+
+## Adjust Double Click Zoom
+
+You can adjust the double click zoom multiplier, by passing optional `zoomDoubleClickSpeed` argument.
+
+When double clicking, zoom is multiplied by `zoomDoubleClickSpeed`, which means that a value of 1 will disable double click zoom completely. 
+
+``` js
+panzoom(document.getElementById('g4'), {
+  zoomDoubleClickSpeed: 1, 
+});
+```
+
+## Set Initial Position And Zoom
+
+You can set the initial position and zoom, by chaining the `zoomAbs` function with x position, y position and zoom as arguments:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  maxZoom: 1,
+  minZoom: 0.1
+}).zoomAbs(
+  300, // initial x position
+  500, // initial y position
+  0.1  // initial zoom 
+);
+```
+
+## Handling touch events
+
+The library will handle `ontouch` events very aggressively, it will `preventDefault`, and
+`stopPropagation` for the touch events inside container. [Sometimes](https://github.com/anvaka/panzoom/issues/12) this is not a desirable behavior.
+
+If you want to take care about this yourself, you can pass `onTouch` callback to the options object:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  onTouch: function(e) {
+    // `e` - is current touch event.
+
+    return false; // tells the library to not preventDefault.
+  }
+});
+```
+
+Note: if you don't `preventDefault` yourself - make sure you test the page behavior on iOS devices.
+Sometimes this may cause page to [bounce undesirably](https://stackoverflow.com/questions/23862204/disable-ios-safari-elastic-scrolling). 
 
 # license
 

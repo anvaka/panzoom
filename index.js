@@ -98,6 +98,7 @@ function createPanZoom(domElement, options) {
   var zoomToAnimation
 
   var multitouch
+  var paused = false
 
   listenForEvents()
 
@@ -110,7 +111,28 @@ function createPanZoom(domElement, options) {
     zoomAbs: zoomAbs,
     smoothZoom: smoothZoom,
     getTransform: getTransformModel,
-    showRectangle: showRectangle
+    showRectangle: showRectangle,
+
+    pause: pause,
+    resume: resume,
+    isPaused: isPaused,
+  }
+
+  function pause() {
+    releaseEvents()
+    paused = true
+  }
+
+  function resume() {
+    if (paused) {
+      console.log('resujme')
+      listenForEvents()
+      paused = false
+    }
+  }
+
+  function isPaused() {
+    return paused;
   }
 
   function showRectangle(rect) {
@@ -371,21 +393,7 @@ function createPanZoom(domElement, options) {
   }
 
   function dispose() {
-    wheel.removeWheelListener(owner, onMouseWheel)
-    owner.removeEventListener('mousedown', onMouseDown)
-    owner.removeEventListener('keydown', onKeyDown)
-    owner.removeEventListener('dblclick', onDoubleClick)
-    if (frameAnimation) {
-      window.cancelAnimationFrame(frameAnimation)
-      frameAnimation = 0
-    }
-
-    smoothScroll.cancel()
-
-    releaseDocumentMouse()
-    releaseTouches()
-
-    triggerPanEnd()
+    releaseEvents();
   }
 
   function listenForEvents() {
@@ -399,6 +407,26 @@ function createPanZoom(domElement, options) {
     wheel.addWheelListener(owner, onMouseWheel)
 
     makeDirty()
+  }
+
+  function releaseEvents() {
+    wheel.removeWheelListener(owner, onMouseWheel)
+    owner.removeEventListener('mousedown', onMouseDown)
+    owner.removeEventListener('keydown', onKeyDown)
+    owner.removeEventListener('dblclick', onDoubleClick)
+    owner.removeEventListener('touchstart', onTouch)
+
+    if (frameAnimation) {
+      window.cancelAnimationFrame(frameAnimation)
+      frameAnimation = 0
+    }
+
+    smoothScroll.cancel()
+
+    releaseDocumentMouse()
+    releaseTouches()
+
+    triggerPanEnd()
   }
 
 

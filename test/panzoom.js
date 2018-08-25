@@ -36,6 +36,45 @@ test('it updates transformation matrix on wheel event', t => {
   }, 40);
 })
 
+test('it can pause/resume', t => {
+  var createPanzoom = require('../');
+  var dom = new JSDOM(`<body><div class='content'></div></body>`);
+  const document = dom.window.document;
+  var content = document.querySelector('.content');
+
+  var panzoom = createPanzoom(content);
+  t.ok(panzoom.isPaused() === false, 'not paused by default');
+
+  panzoom.pause();
+
+  t.ok(panzoom.isPaused() === true, 'Paused when requested');
+
+  var wheelEvent = new dom.window.WheelEvent('wheel', {deltaY: 1});
+  document.body.dispatchEvent(wheelEvent);
+  var originalTransform = panzoom.getTransform();
+
+  setTimeout(() => {
+    var transform = panzoom.getTransform();
+
+    t.ok(originalTransform.x === transform.x, 'x transform is the same');
+    t.ok(originalTransform.y === transform.y, 'y transform is the same' );
+    t.ok(originalTransform.scale === transform.scale, 'scale is the same');
+
+    panzoom.resume();
+    t.ok(panzoom.isPaused() === false, 'not paused by default');
+
+    var wheelEvent = new dom.window.WheelEvent('wheel', {deltaY: 1});
+    document.body.dispatchEvent(wheelEvent);
+    setTimeout(() => {
+      var transform = panzoom.getTransform();
+
+      t.ok(transform.scale !== 1, 'Scale is updated');
+      t.ok(content.style.transform, 'transform applied');
+      t.end();
+    }, 40);
+  }, 40);
+})
+
 test('it disposes correctly', t => {
   var createPanzoom = require('../');
   var dom = new JSDOM(`<body><div class='content'></div></body>`);
@@ -64,3 +103,7 @@ test('it disposes correctly', t => {
     t.end();
   }
 })
+
+function clone(x) {
+  return JSON.parse(JSON.stringify(x));
+}

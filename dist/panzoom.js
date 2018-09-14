@@ -1,4 +1,4 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.panzoom = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.panzoom = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 /* globals SVGElement */
 /**
  * Allows to drag and zoom svg elements
@@ -120,14 +120,14 @@ function createPanZoom(domElement, options) {
   }
 
   function pause() {
-    releaseEvents()
+    //releaseEvents()
     paused = true
   }
 
   function resume() {
     if (paused) {
       console.log('resujme')
-      listenForEvents()
+      //listenForEvents()
       paused = false
     }
   }
@@ -446,6 +446,7 @@ function createPanZoom(domElement, options) {
   }
 
   function onKeyDown(e) {
+    if (isPaused()) return;
     var x = 0, y = 0, z = 0
     if (e.keyCode === 38) {
       y = 1 // up
@@ -484,6 +485,7 @@ function createPanZoom(domElement, options) {
   }
 
   function onTouch(e) {
+    if (isPaused()) return;
     beforeTouch(e);
     if (e.touches.length === 1) {
       return handleSingleFingerTouch(e, e.touches[0])
@@ -507,6 +509,7 @@ function createPanZoom(domElement, options) {
   }
 
   function handleSingleFingerTouch(e) {
+    if (isPaused()) return;
     var touch = e.touches[0]
     var offset = getOffsetXY(touch)
     mouseX = offset.x
@@ -525,6 +528,7 @@ function createPanZoom(domElement, options) {
   }
 
   function handleTouchMove(e) {
+    if (isPaused()) return;
     if (e.touches.length === 1) {
       e.stopPropagation()
       var touch = e.touches[0]
@@ -575,6 +579,7 @@ function createPanZoom(domElement, options) {
   }
 
   function handleTouchEnd(e) {
+    if (isPaused()) return;
     if (e.touches.length > 0) {
       var offset = getOffsetXY(e.touches[0])
       mouseX = offset.x
@@ -599,6 +604,7 @@ function createPanZoom(domElement, options) {
   }
 
   function onDoubleClick(e) {
+    if (isPaused()) return;
     var offset = getOffsetXY(e)
     smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
 
@@ -607,6 +613,7 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseDown(e) {
+    if (isPaused()) return;
     if (touchInProgress) {
       // modern browsers will fire mousedown for touch events too
       // we do not want this: touch is handled separately.
@@ -634,6 +641,7 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseMove(e) {
+    if (isPaused()) return;
     // no need to worry about mouse events when touch is happening
     if (touchInProgress) return
 
@@ -651,6 +659,7 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseUp() {
+    if (isPaused()) return;
     preventTextSelection.release()
     triggerPanEnd()
     releaseDocumentMouse()
@@ -671,6 +680,7 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseWheel(e) {
+    if (isPaused()) return;
     // if client does not want to handle this event - just ignore the call
     if (beforeWheel(e)) return
 

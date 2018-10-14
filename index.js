@@ -58,6 +58,7 @@ function createPanZoom(domElement, options) {
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
 
+  var panOnlyWhenZoomed = typeof options.panOnlyWhenZoomed === 'boolean' ? options.panOnlyWhenZoomed : false
   var boundsPadding = typeof options.boundsPadding === 'number' ? options.boundsPadding : 0.05
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
   var beforeWheel = options.beforeWheel || noop
@@ -526,6 +527,10 @@ function createPanZoom(domElement, options) {
   function handleTouchMove(e) {
     if (e.touches.length === 1) {
       e.stopPropagation()
+
+      // Pan only when zoomed
+      if (panOnlyWhenZoomed && transform.scale == minZoom) return
+
       var touch = e.touches[0]
 
       var offset = getOffsetXY(touch)
@@ -635,6 +640,9 @@ function createPanZoom(domElement, options) {
   function onMouseMove(e) {
     // no need to worry about mouse events when touch is happening
     if (touchInProgress) return
+
+    // Pan only when zoomed
+    if (panOnlyWhenZoomed && transform.scale == minZoom) return
 
     triggerPanStart()
 

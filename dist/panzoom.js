@@ -54,6 +54,7 @@ function createPanZoom(domElement, options) {
     domController.initTransform(transform)
   }
 
+  var filterKey = typeof options.filterKey === 'function' ? options.filterKey : noop;
   var realPinch = typeof options.realPinch === 'boolean' ? options.realPinch : false
   var bounds = options.bounds
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
@@ -126,7 +127,6 @@ function createPanZoom(domElement, options) {
 
   function resume() {
     if (paused) {
-      console.log('resujme')
       listenForEvents()
       paused = false
     }
@@ -459,6 +459,11 @@ function createPanZoom(domElement, options) {
       z = 1 // `-` -  zoom out
     } else if (e.keyCode === 187 || e.keyCode === 107) { // EQUAL SIGN or ADD
       z = -1 // `=` - zoom in (equal sign on US layout is under `+`)
+    }
+
+    if (filterKey(e, x, y, z)) {
+      // They don't want us to handle the key: https://github.com/anvaka/panzoom/issues/45
+      return;
     }
 
     if (x || y) {

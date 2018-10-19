@@ -108,7 +108,24 @@ panzoom(document.getElementById('g4'), {
 ```
 
 See [JSFiddle](https://jsfiddle.net/Laxq9jLu/) for the demo. The tiger will be
-zooomable only when `Alt` key is down.
+zoomable only when `Alt` key is down.
+
+
+## Ignore keyboard events
+
+By default, panzoom will listen to keyboard events, so that users can navigate the scene
+with arrow keys and `+`, `-` signs to zoom out. If you don't want this behavior you can
+pass the `filterKey()` predicate that returns truthy value to prevent panzoom's default
+behavior:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  filterKey: function(/* e, dx, dy, dz */) {
+    // don't let panzoom handle this event:
+    return true;
+  }
+});
+```
 
 ## Zoom Speed
 

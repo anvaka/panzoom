@@ -108,12 +108,7 @@ test('it can use keyboard', t => {
   var content = document.querySelector('.content');
 
   // JSDOM does not support this, have to override:
-  content.parentElement.getBoundingClientRect = function() {
-    return {
-      width: 100,
-      height: 100
-    }
-  }
+  content.parentElement.getBoundingClientRect = makeBoundingRect(100, 100);
 
   var panzoom = createPanzoom(content);
 
@@ -138,12 +133,7 @@ test('it allows to cancel keyboard events', t => {
   var content = document.querySelector('.content');
 
   // JSDOM does not support this, have to override:
-  content.parentElement.getBoundingClientRect = function() {
-    return {
-      width: 100,
-      height: 100
-    }
-  }
+  content.parentElement.getBoundingClientRect = makeBoundingRect(100, 100);
 
   var DOWN_ARROW = 40;
   var filterKeyCalledCorrectly = false;
@@ -174,3 +164,106 @@ test('it allows to cancel keyboard events', t => {
     t.end();
   }
 });
+
+test('double click zooms in', t => {
+  var dom = new JSDOM(`<body><div class='content'></div></body>`);
+  const document = dom.window.document;
+  var content = document.querySelector('.content');
+  // JSDOM does not support this, have to override:
+  content.parentElement.getBoundingClientRect = makeBoundingRect(100, 100);
+
+  var panzoom = createPanzoom(content);
+
+  var calledTimes = 0;
+  content.addEventListener('zoom', function() {
+    calledTimes += 1;
+  })
+
+  var doubleClick = new dom.window.MouseEvent('dblclick', {
+    bubbles: true,
+    cancelable: true,
+    clientX: 50,
+    clientY: 50
+  });
+
+  content.dispatchEvent(doubleClick);
+  t.ok(doubleClick.defaultPrevented, 'default prevented');
+  setTimeout(verifyTransformIsChanged, 40);
+
+  function verifyTransformIsChanged() {
+    var transform = parseMatrixTransform(content.style.transform)
+    t.ok(transform, 'Transform is defined');
+    t.ok(transform.scaleX !== 1, 'Scale has changed');
+    t.ok(transform.scaleX === transform.scaleY, 'Scale is proportional');
+    t.ok(transform.dx !== 0 && transform.dy !== 0, 'translated a bit');
+    t.ok(calledTimes > 0, 'zoom event triggered');
+    panzoom.dispose();
+    t.end();
+  }
+});
+
+test('Can cancel preventDefault', t => {
+  var dom = new JSDOM(`<body><div class='content'></div></body>`);
+  const document = dom.window.document;
+  var content = document.querySelector('.content');
+  // JSDOM does not support this, have to override:
+  content.parentElement.getBoundingClientRect = makeBoundingRect(100, 100);
+
+  var panzoom = createPanzoom(content, {
+    onDoubleClick() {
+      // we don't want to prevent default!
+      return false;
+    }
+  });
+
+  var calledTimes = 0;
+  content.addEventListener('zoom', function() {
+    calledTimes += 1;
+  })
+
+  var doubleClick = new dom.window.MouseEvent('dblclick', {
+    bubbles: true,
+    cancelable: true,
+    clientX: 50,
+    clientY: 50
+  });
+
+  content.dispatchEvent(doubleClick);
+  t.notOk(doubleClick.defaultPrevented, 'default should not be prevented');
+  setTimeout(verifyTransformIsChanged, 40);
+
+  function verifyTransformIsChanged() {
+    var transform = parseMatrixTransform(content.style.transform)
+    t.ok(transform, 'Transform is defined');
+    t.ok(transform.scaleX !== 1, 'Scale has changed');
+    t.ok(transform.scaleX === transform.scaleY, 'Scale is proportional');
+    t.ok(transform.dx !== 0 && transform.dy !== 0, 'translated a bit');
+    t.ok(calledTimes > 0, 'zoom event triggered');
+    panzoom.dispose();
+    t.end();
+  }
+});
+
+function makeBoundingRect(width, height) {
+    return function getBoundingClientRect() {
+      return {
+        left: 0,
+        top: 0,
+        width: width,
+        height: height
+      };
+  }
+}
+
+function parseMatrixTransform(transformString) {
+  if (!transformString) return;
+  var matches = transformString.match(/matrix\(([-+]?\d*\.?\d*), 0, 0, ([-+]?\d*\.?\d*), ([-+]?\d*\.?\d*), ([-+]?\d*\.?\d*)\)/)
+  if (!matches) return;
+
+  return {
+    scaleX: parseFloat(matches[1]), 
+    scaleY: parseFloat(matches[2]), 
+    dx: parseFloat(matches[3]), 
+    dy: parseFloat(matches[4])
+  }
+}

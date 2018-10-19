@@ -20,7 +20,7 @@ npm install panzoom --save
 Or download from CDN:
 
 ```
-<script src='https://cdn.rawgit.com/anvaka/panzoom/v6.1.3/dist/panzoom.min.js'></script>
+<script src='https://unpkg.com/panzoom@6.3.0/dist/panzoom.min.js'></script>
 ```
 
 If you download from CDN the library will be available under `panzoom` global name.
@@ -250,6 +250,24 @@ panzoom(document.getElementById('g4'), {
 
 Note: if you don't `preventDefault` yourself - make sure you test the page behavior on iOS devices.
 Sometimes this may cause page to [bounce undesirably](https://stackoverflow.com/questions/23862204/disable-ios-safari-elastic-scrolling). 
+
+
+## Handling double click events
+
+By default panzoom will prevent default action on double click events - this is done to avoid
+accidental text selection (which is default browser action on double click). If you prefer to
+allow default action, you can pass `onDoubleClick()` callback to options. If this callback
+returns false, then the library will not prevent default action:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  onDoubleClick: function(e) {
+    // `e` - is current double click event.
+
+    return false; // tells the library to not preventDefault, and not stop propagation
+  }
+});
+```
 
 # license
 

@@ -488,7 +488,9 @@ function createPanZoom(domElement, options) {
   }
 
   function onTouch(e) {
+    // let the override the touch behavior
     beforeTouch(e);
+
     if (e.touches.length === 1) {
       return handleSingleFingerTouch(e, e.touches[0])
     } else if (e.touches.length === 2) {
@@ -508,6 +510,17 @@ function createPanZoom(domElement, options) {
 
     e.stopPropagation()
     e.preventDefault()
+  }
+
+  function beforeDoubleClick(e) {
+    if (options.onDoubleClick && !options.onDoubleClick(e)) {
+      // if they return `false` from onTouch, we don't want to stop
+      // events propagation. Fixes https://github.com/anvaka/panzoom/issues/46
+      return
+    }
+
+    e.preventDefault()
+    e.stopPropagation()
   }
 
   function handleSingleFingerTouch(e) {
@@ -603,11 +616,9 @@ function createPanZoom(domElement, options) {
   }
 
   function onDoubleClick(e) {
+    beforeDoubleClick(e);
     var offset = getOffsetXY(e)
     smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
-
-    e.preventDefault()
-    e.stopPropagation()
   }
 
   function onMouseDown(e) {

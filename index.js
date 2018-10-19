@@ -1,3 +1,5 @@
+'use strict';
+
 /* globals SVGElement */
 /**
  * Allows to drag and zoom svg elements

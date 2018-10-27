@@ -1,3 +1,5 @@
+'use strict';
+
 /* globals SVGElement */
 /**
  * Allows to drag and zoom svg elements
@@ -53,6 +55,7 @@ function createPanZoom(domElement, options) {
     domController.initTransform(transform)
   }
 
+  var filterKey = typeof options.filterKey === 'function' ? options.filterKey : noop;
   var realPinch = typeof options.realPinch === 'boolean' ? options.realPinch : false
   var bounds = options.bounds
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
@@ -125,7 +128,6 @@ function createPanZoom(domElement, options) {
 
   function resume() {
     if (paused) {
-      console.log('resujme')
       listenForEvents()
       paused = false
     }
@@ -460,6 +462,11 @@ function createPanZoom(domElement, options) {
       z = -1 // `=` - zoom in (equal sign on US layout is under `+`)
     }
 
+    if (filterKey(e, x, y, z)) {
+      // They don't want us to handle the key: https://github.com/anvaka/panzoom/issues/45
+      return;
+    }
+
     if (x || y) {
       e.preventDefault()
       e.stopPropagation()
@@ -483,7 +490,9 @@ function createPanZoom(domElement, options) {
   }
 
   function onTouch(e) {
+    // let the override the touch behavior
     beforeTouch(e);
+
     if (e.touches.length === 1) {
       return handleSingleFingerTouch(e, e.touches[0])
     } else if (e.touches.length === 2) {
@@ -505,12 +514,24 @@ function createPanZoom(domElement, options) {
     e.preventDefault()
   }
 
+  function beforeDoubleClick(e) {
+    if (options.onDoubleClick && !options.onDoubleClick(e)) {
+      // if they return `false` from onTouch, we don't want to stop
+      // events propagation. Fixes https://github.com/anvaka/panzoom/issues/46
+      return
+    }
+
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
   function handleSingleFingerTouch(e) {
     var touch = e.touches[0]
     var offset = getOffsetXY(touch)
     mouseX = offset.x
     mouseY = offset.y
 
+    smoothScroll.cancel()
     startTouchListenerIfNeeded()
   }
 
@@ -598,11 +619,9 @@ function createPanZoom(domElement, options) {
   }
 
   function onDoubleClick(e) {
+    beforeDoubleClick(e);
     var offset = getOffsetXY(e)
     smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
-
-    e.preventDefault()
-    e.stopPropagation()
   }
 
   function onMouseDown(e) {
@@ -616,6 +635,8 @@ function createPanZoom(domElement, options) {
     // for Firefox, left click == 0
     var isLeftButton = ((e.button === 1 && window.event !== null) || e.button === 0)
     if (!isLeftButton) return
+
+    smoothScroll.cancel()
 
     var offset = getOffsetXY(e);
     var point = transformToScreen(offset.x, offset.y)
@@ -798,9 +819,13 @@ function autoRun() {
 
   var scripts = document.getElementsByTagName('script');
   if (!scripts) return;
+  var panzoomScript;
 
-  var index = scripts.length - 1;
-  var panzoomScript = scripts[index];
+  Array.from(scripts).forEach(function(x) {
+    if (x.src && x.src.match(/\bpanzoom(\.min)?\.js/)) {
+      panzoomScript = x
+    }
+  })
 
   if (!panzoomScript) return;
 

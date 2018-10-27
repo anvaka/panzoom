@@ -6,9 +6,10 @@ global.document = globalDom.window.document;
 global.HTMLElement = globalDom.window.HTMLElement;
 global.SVGElement = globalDom.window.SVGElement;
 
+var createPanzoom = require('../');
+
 test('it can be created', (t) => {
   // Note - have to do it after globals initialized.
-  var createPanzoom = require('../');
   var dom = new JSDOM(`<body><div class='content'></div></body>`);
   const document = dom.window.document;
   var content = document.querySelector('.content');
@@ -19,7 +20,6 @@ test('it can be created', (t) => {
 });
 
 test('it updates transformation matrix on wheel event', t => {
-  var createPanzoom = require('../');
   var dom = new JSDOM(`<body><div class='content'></div></body>`);
   const document = dom.window.document;
   var content = document.querySelector('.content');
@@ -37,7 +37,6 @@ test('it updates transformation matrix on wheel event', t => {
 })
 
 test('it can pause/resume', t => {
-  var createPanzoom = require('../');
   var dom = new JSDOM(`<body><div class='content'></div></body>`);
   const document = dom.window.document;
   var content = document.querySelector('.content');
@@ -76,7 +75,6 @@ test('it can pause/resume', t => {
 })
 
 test('it disposes correctly', t => {
-  var createPanzoom = require('../');
   var dom = new JSDOM(`<body><div class='content'></div></body>`);
   const document = dom.window.document;
   var content = document.querySelector('.content');
@@ -102,8 +100,170 @@ test('it disposes correctly', t => {
     t.equals(content.style.transform, originalTransform, 'Transform has not changed after dispose');
     t.end();
   }
-})
+});
 
-function clone(x) {
-  return JSON.parse(JSON.stringify(x));
+test('it can use keyboard', t => {
+  var dom = new JSDOM(`<body><div class='content'></div></body>`);
+  const document = dom.window.document;
+  var content = document.querySelector('.content');
+
+  // JSDOM does not support this, have to override:
+  content.parentElement.getBoundingClientRect = makeBoundingRect(100, 100);
+
+  var panzoom = createPanzoom(content);
+
+  var DOWN_ARROW = 40;
+  var keyEvent = new dom.window.KeyboardEvent('keydown', {
+    keyCode: DOWN_ARROW,
+    bubbles: true
+  });
+  content.dispatchEvent(keyEvent);
+  setTimeout(verifyTransformIsChanged, 40);
+
+  function verifyTransformIsChanged() {
+    t.equals(content.style.transform.toString(), 'matrix(1, 0, 0, 1, 0, -5)', 'keydown changed the y position');
+    panzoom.dispose();
+    t.end();
+  }
+});
+
+test('it allows to cancel keyboard events', t => {
+  var dom = new JSDOM(`<body><div class='content'></div></body>`);
+  const document = dom.window.document;
+  var content = document.querySelector('.content');
+
+  // JSDOM does not support this, have to override:
+  content.parentElement.getBoundingClientRect = makeBoundingRect(100, 100);
+
+  var DOWN_ARROW = 40;
+  var filterKeyCalledCorrectly = false;
+  var panzoom = createPanzoom(content, {
+    filterKey(e, x, y, z) {
+      t.equals(e.keyCode, DOWN_ARROW, 'down arrow is used');
+      t.equals(x, 0, 'x has not changed');
+      t.equals(y, -1, 'y changed!');
+      t.equals(z, 0, 'z has not changed');
+      filterKeyCalledCorrectly = true
+
+      // don't let panzoom to handle this event
+      return true;
+    }
+  });
+
+  var keyEvent = new dom.window.KeyboardEvent('keydown', {
+    keyCode: DOWN_ARROW,
+    bubbles: true
+  });
+  content.dispatchEvent(keyEvent);
+  setTimeout(verifyTransformIsChanged, 40);
+
+  function verifyTransformIsChanged() {
+    t.equals(content.style.transform.toString(), 'matrix(1, 0, 0, 1, 0, 0)', 'keydown does not change');
+    t.equals(filterKeyCalledCorrectly, true, 'filter key called correctly');
+    panzoom.dispose();
+    t.end();
+  }
+});
+
+test('double click zooms in', t => {
+  var dom = new JSDOM(`<body><div class='content'></div></body>`);
+  const document = dom.window.document;
+  var content = document.querySelector('.content');
+  // JSDOM does not support this, have to override:
+  content.parentElement.getBoundingClientRect = makeBoundingRect(100, 100);
+
+  var panzoom = createPanzoom(content);
+
+  var calledTimes = 0;
+  content.addEventListener('zoom', function() {
+    calledTimes += 1;
+  })
+
+  var doubleClick = new dom.window.MouseEvent('dblclick', {
+    bubbles: true,
+    cancelable: true,
+    clientX: 50,
+    clientY: 50
+  });
+
+  content.dispatchEvent(doubleClick);
+  t.ok(doubleClick.defaultPrevented, 'default prevented');
+  setTimeout(verifyTransformIsChanged, 40);
+
+  function verifyTransformIsChanged() {
+    var transform = parseMatrixTransform(content.style.transform)
+    t.ok(transform, 'Transform is defined');
+    t.ok(transform.scaleX !== 1, 'Scale has changed');
+    t.ok(transform.scaleX === transform.scaleY, 'Scale is proportional');
+    t.ok(transform.dx !== 0 && transform.dy !== 0, 'translated a bit');
+    t.ok(calledTimes > 0, 'zoom event triggered');
+    panzoom.dispose();
+    t.end();
+  }
+});
+
+test('Can cancel preventDefault', t => {
+  var dom = new JSDOM(`<body><div class='content'></div></body>`);
+  const document = dom.window.document;
+  var content = document.querySelector('.content');
+  // JSDOM does not support this, have to override:
+  content.parentElement.getBoundingClientRect = makeBoundingRect(100, 100);
+
+  var panzoom = createPanzoom(content, {
+    onDoubleClick() {
+      // we don't want to prevent default!
+      return false;
+    }
+  });
+
+  var calledTimes = 0;
+  content.addEventListener('zoom', function() {
+    calledTimes += 1;
+  })
+
+  var doubleClick = new dom.window.MouseEvent('dblclick', {
+    bubbles: true,
+    cancelable: true,
+    clientX: 50,
+    clientY: 50
+  });
+
+  content.dispatchEvent(doubleClick);
+  t.notOk(doubleClick.defaultPrevented, 'default should not be prevented');
+  setTimeout(verifyTransformIsChanged, 40);
+
+  function verifyTransformIsChanged() {
+    var transform = parseMatrixTransform(content.style.transform)
+    t.ok(transform, 'Transform is defined');
+    t.ok(transform.scaleX !== 1, 'Scale has changed');
+    t.ok(transform.scaleX === transform.scaleY, 'Scale is proportional');
+    t.ok(transform.dx !== 0 && transform.dy !== 0, 'translated a bit');
+    t.ok(calledTimes > 0, 'zoom event triggered');
+    panzoom.dispose();
+    t.end();
+  }
+});
+
+function makeBoundingRect(width, height) {
+    return function getBoundingClientRect() {
+      return {
+        left: 0,
+        top: 0,
+        width: width,
+        height: height
+      };
+  }
+}
+
+function parseMatrixTransform(transformString) {
+  if (!transformString) return;
+  var matches = transformString.match(/matrix\(([-+]?\d*\.?\d*), 0, 0, ([-+]?\d*\.?\d*), ([-+]?\d*\.?\d*), ([-+]?\d*\.?\d*)\)/)
+  if (!matches) return;
+
+  return {
+    scaleX: parseFloat(matches[1]), 
+    scaleY: parseFloat(matches[2]), 
+    dx: parseFloat(matches[3]), 
+    dy: parseFloat(matches[4])
+  }
 }

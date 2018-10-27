@@ -20,7 +20,7 @@ npm install panzoom --save
 Or download from CDN:
 
 ```
-<script src='https://cdn.rawgit.com/anvaka/panzoom/v4.4.0/dist/panzoom.min.js'></script>
+<script src='https://unpkg.com/panzoom@6.3.2/dist/panzoom.min.js'></script>
 ```
 
 If you download from CDN the library will be available under `panzoom` global name.
@@ -108,7 +108,24 @@ panzoom(document.getElementById('g4'), {
 ```
 
 See [JSFiddle](https://jsfiddle.net/Laxq9jLu/) for the demo. The tiger will be
-zooomable only when `Alt` key is down.
+zoomable only when `Alt` key is down.
+
+
+## Ignore keyboard events
+
+By default, panzoom will listen to keyboard events, so that users can navigate the scene
+with arrow keys and `+`, `-` signs to zoom out. If you don't want this behavior you can
+pass the `filterKey()` predicate that returns truthy value to prevent panzoom's default
+behavior:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  filterKey: function(/* e, dx, dy, dz */) {
+    // don't let panzoom handle this event:
+    return true;
+  }
+});
+```
 
 ## Zoom Speed
 
@@ -167,7 +184,7 @@ If you want to quickly play with panzoom without using javascript, you can confi
 <!DOCTYPE html>
 <html>
 <head>
-  <script src='https://cdn.rawgit.com/anvaka/panzoom/v6.1.0/dist/panzoom.min.js'
+  <script src='https://cdn.rawgit.com/anvaka/panzoom/v6.1.3/dist/panzoom.min.js'
     query='#scene' name='pz'></script>
 </head>
 <body>
@@ -233,6 +250,24 @@ panzoom(document.getElementById('g4'), {
 
 Note: if you don't `preventDefault` yourself - make sure you test the page behavior on iOS devices.
 Sometimes this may cause page to [bounce undesirably](https://stackoverflow.com/questions/23862204/disable-ios-safari-elastic-scrolling). 
+
+
+## Handling double click events
+
+By default panzoom will prevent default action on double click events - this is done to avoid
+accidental text selection (which is default browser action on double click). If you prefer to
+allow default action, you can pass `onDoubleClick()` callback to options. If this callback
+returns false, then the library will not prevent default action:
+
+``` js
+panzoom(document.getElementById('g4'), {
+  onDoubleClick: function(e) {
+    // `e` - is current double click event.
+
+    return false; // tells the library to not preventDefault, and not stop propagation
+  }
+});
+```
 
 # license
 

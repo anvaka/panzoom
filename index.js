@@ -531,6 +531,7 @@ function createPanZoom(domElement, options) {
     mouseX = offset.x
     mouseY = offset.y
 
+    smoothScroll.cancel()
     startTouchListenerIfNeeded()
   }
 

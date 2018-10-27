@@ -531,6 +531,7 @@ function createPanZoom(domElement, options) {
     mouseX = offset.x
     mouseY = offset.y
 
+    smoothScroll.cancel()
     startTouchListenerIfNeeded()
   }
 
@@ -634,6 +635,8 @@ function createPanZoom(domElement, options) {
     // for Firefox, left click == 0
     var isLeftButton = ((e.button === 1 && window.event !== null) || e.button === 0)
     if (!isLeftButton) return
+
+    smoothScroll.cancel()
 
     var offset = getOffsetXY(e);
     var point = transformToScreen(offset.x, offset.y)

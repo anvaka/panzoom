@@ -20,7 +20,7 @@ npm install panzoom --save
 Or download from CDN:
 
 ```
-<script src='https://unpkg.com/panzoom@6.3.0/dist/panzoom.min.js'></script>
+<script src='https://unpkg.com/panzoom@6.3.2/dist/panzoom.min.js'></script>
 ```
 
 If you download from CDN the library will be available under `panzoom` global name.

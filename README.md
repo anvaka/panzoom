@@ -7,7 +7,7 @@ Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).
  * [Regular DOM object](https:////anvaka.github.io/panzoom/demo/dom.html)
  * [Standalone page](https:////anvaka.github.io/panzoom/demo/index.html) - this repository
  * [YASIV](http://www.yasiv.com/#/Search?q=algorithms&category=Books&lang=US) - my hobby project
- * [SVG Tiger](https://jsfiddle.net/uwxcmbyg/) - js fiddle
+ * [SVG Tiger](https://jsfiddle.net/uwxcmbyg/609/) - js fiddle
 
 # Usage
 
@@ -107,7 +107,7 @@ instance.on('transform', function(e) {
 });
 ```
 
-See [JSFiddle](https://jsfiddle.net/uwxcmbyg/1/) console for a demo.
+See [JSFiddle](https://jsfiddle.net/uwxcmbyg/609/) console for a demo.
 
 ## Ignore mouse wheel
 

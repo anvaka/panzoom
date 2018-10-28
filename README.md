@@ -20,7 +20,7 @@ npm install panzoom --save
 Or download from CDN:
 
 ```
-<script src='https://unpkg.com/panzoom@6.3.2/dist/panzoom.min.js'></script>
+<script src='https://unpkg.com/panzoom@7.0.0/dist/panzoom.min.js'></script>
 ```
 
 If you download from CDN the library will be available under `panzoom` global name.
@@ -76,17 +76,35 @@ instance.dispose()
 This will make sure that all event handlers are cleared and you are not leaking
 memory
 
-When user starts/ends dragging the scene, the scene will fire `panstart`/`panend`
-events. By default they will bubble up, so you can catch them any time you want:
+## Events notification
+
+The library allows to subscribe to transformation changing events. E.g. when
+user starts/ends dragging the scene, the scene will fire `panstart`/`panend`
+events. Here is example of all supported events:
 
 ``` js
-document.body.addEventListener('panstart', function(e) {
-  console.log('pan start', e);
-}, true);
+var instance = panzoom(scene);
+instance.on('panstart', function(e) {
+  console.log('Fired when pan is just started ', e);
+  // Note: e === instance.
+});
 
-document.body.addEventListener('panend', function(e) {
-  console.log('pan end', e);
-}, true);
+instance.on('pan', function(e) {
+  console.log('Fired when the scene is being panned', e);
+});
+
+instance.on('panend', function(e) {
+  console.log('Fired when pan ended', e);
+});
+
+instance.on('zoom', function(e) {
+  console.log('Fired when scene is zoomed', e);
+});
+
+instance.on('transform', function(e) {
+  // This event will be called along with events above.
+  console.log('Fired when any transformation has happened', e);
+});
 ```
 
 See [JSFiddle](https://jsfiddle.net/uwxcmbyg/1/) console for a demo.

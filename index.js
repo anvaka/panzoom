@@ -6,8 +6,8 @@
  */
 var wheel = require('wheel')
 var animate = require('amator')
+var eventify = require('ngraph.events');
 var kinetic = require('./lib/kinetic.js')
-var createEvent = require('./lib/createEvent.js')
 var preventTextSelection = require('./lib/textSelectionInterceptor.js')()
 var Transform = require('./lib/transform.js');
 var makeSvgController = require('./lib/svgController.js')
@@ -28,22 +28,22 @@ module.exports = createPanZoom
 function createPanZoom(domElement, options) {
   options = options || {}
 
-  var domController = options.controller
+  var panController = options.controller
 
-  if (!domController) {
+  if (!panController) {
     if (domElement instanceof SVGElement) {
-      domController = makeSvgController(domElement)
+      panController = makeSvgController(domElement)
     }
 
     if (domElement instanceof HTMLElement) {
-      domController = makeDomController(domElement)
+      panController = makeDomController(domElement)
     }
   }
 
-  if (!domController) {
+  if (!panController) {
     throw new Error('Cannot create panzoom for the current type of dom element')
   }
-  var owner = domController.getOwner()
+  var owner = panController.getOwner()
   // just to avoid GC pressure, every time we do intermediate transform
   // we return this object. For internal use only. Never give it back to the consumer of this library
   var storedCTMResult = {x: 0, y: 0}
@@ -51,8 +51,8 @@ function createPanZoom(domElement, options) {
   var isDirty = false
   var transform = new Transform()
 
-  if (domController.initTransform) {
-    domController.initTransform(transform)
+  if (panController.initTransform) {
+    panController.initTransform(transform)
   }
 
   var filterKey = typeof options.filterKey === 'function' ? options.filterKey : noop;
@@ -105,7 +105,7 @@ function createPanZoom(domElement, options) {
 
   listenForEvents()
 
-  return {
+  var api = {
     dispose: dispose,
     moveBy: internalMoveBy,
     moveTo: moveTo,
@@ -120,6 +120,10 @@ function createPanZoom(domElement, options) {
     resume: resume,
     isPaused: isPaused,
   }
+
+  eventify(api);
+
+  return api;
 
   function pause() {
     releaseEvents()
@@ -156,8 +160,8 @@ function createPanZoom(domElement, options) {
   }
 
   function transformToScreen(x, y) {
-    if (domController.getScreenCTM) {
-      var parentCTM = domController.getScreenCTM()
+    if (panController.getScreenCTM) {
+      var parentCTM = panController.getScreenCTM()
       var parentScaleX = parentCTM.a
       var parentScaleY = parentCTM.d
       var parentOffsetX = parentCTM.e
@@ -190,7 +194,7 @@ function createPanZoom(domElement, options) {
       w = ownerRect.width
       h = ownerRect.height
     }
-    var bbox = domController.getBBox()
+    var bbox = panController.getBBox()
     if (bbox.width === 0 || bbox.height === 0) {
       // we probably do not have any elements in the SVG
       // just bail out;
@@ -292,7 +296,7 @@ function createPanZoom(domElement, options) {
   }
 
   function getClientRect() {
-    var bbox = domController.getBBox()
+    var bbox = panController.getBBox()
     var leftTop = client(bbox.left, bbox.top)
 
     return {
@@ -440,7 +444,7 @@ function createPanZoom(domElement, options) {
     isDirty = false
 
     // TODO: Should I allow to cancel this?
-    domController.applyTransform(transform)
+    panController.applyTransform(transform)
 
     triggerEvent('transform')
     frameAnimation = 0
@@ -723,9 +727,6 @@ function createPanZoom(domElement, options) {
       smoothScroll.cancel()
       cancelZoomAnimation()
 
-      // TODO: should consolidate this and publicZoomTo
-      triggerEvent('zoom')
-
       zoomToAnimation = animate(from, to, {
         step: function(v) {
           zoomAbs(clientX, clientY, v.scale)
@@ -774,8 +775,7 @@ function createPanZoom(domElement, options) {
   }
 
   function triggerEvent(name) {
-    var event = createEvent(name)
-    domElement.dispatchEvent(event)
+    api.fire(name, api);
   }
 }
 

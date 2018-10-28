@@ -1,5 +1,5 @@
 var test = require('tap').test;
-var JSDOM = require("jsdom").JSDOM;
+var JSDOM = require('jsdom').JSDOM;
 var globalDom = new JSDOM('', { pretendToBeVisual: true });
 global.window = globalDom.window;
 global.document = globalDom.window.document;
@@ -111,6 +111,10 @@ test('it can use keyboard', t => {
   content.parentElement.getBoundingClientRect = makeBoundingRect(100, 100);
 
   var panzoom = createPanzoom(content);
+  var counter = {};
+  panzoom.on('pan', countEvent(counter, 'pan'));
+  panzoom.on('transform', countEvent(counter, 'transform'));
+  panzoom.on('zoom', countEvent(counter, 'zoom'));
 
   var DOWN_ARROW = 40;
   var keyEvent = new dom.window.KeyboardEvent('keydown', {
@@ -121,10 +125,14 @@ test('it can use keyboard', t => {
   setTimeout(verifyTransformIsChanged, 40);
 
   function verifyTransformIsChanged() {
+    t.equals(counter.pan, 1, 'pan called');
+    t.equals(counter.transform, 1, 'transform called');
+    t.notOk(counter.zoom, 'Zoom should not have been called');
     t.equals(content.style.transform.toString(), 'matrix(1, 0, 0, 1, 0, -5)', 'keydown changed the y position');
     panzoom.dispose();
     t.end();
   }
+
 });
 
 test('it allows to cancel keyboard events', t => {
@@ -175,9 +183,9 @@ test('double click zooms in', t => {
   var panzoom = createPanzoom(content);
 
   var calledTimes = 0;
-  content.addEventListener('zoom', function() {
+  panzoom.on('zoom', function() {
     calledTimes += 1;
-  })
+  });
 
   var doubleClick = new dom.window.MouseEvent('dblclick', {
     bubbles: true,
@@ -217,7 +225,7 @@ test('Can cancel preventDefault', t => {
   });
 
   var calledTimes = 0;
-  content.addEventListener('zoom', function() {
+  panzoom.on('zoom', function() {
     calledTimes += 1;
   })
 
@@ -265,5 +273,11 @@ function parseMatrixTransform(transformString) {
     scaleY: parseFloat(matches[2]), 
     dx: parseFloat(matches[3]), 
     dy: parseFloat(matches[4])
+  }
+}
+
+function countEvent(counter, name) {
+  return function() {
+    counter[name] = (counter[name] || 0) + 1;
   }
 }

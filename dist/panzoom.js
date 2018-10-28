@@ -1,4 +1,4 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.panzoom = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.panzoom = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 'use strict';
 
 /* globals SVGElement */
@@ -7,8 +7,8 @@
  */
 var wheel = require('wheel')
 var animate = require('amator')
+var eventify = require('ngraph.events');
 var kinetic = require('./lib/kinetic.js')
-var createEvent = require('./lib/createEvent.js')
 var preventTextSelection = require('./lib/textSelectionInterceptor.js')()
 var Transform = require('./lib/transform.js');
 var makeSvgController = require('./lib/svgController.js')
@@ -29,22 +29,22 @@ module.exports = createPanZoom
 function createPanZoom(domElement, options) {
   options = options || {}
 
-  var domController = options.controller
+  var panController = options.controller
 
-  if (!domController) {
+  if (!panController) {
     if (domElement instanceof SVGElement) {
-      domController = makeSvgController(domElement)
+      panController = makeSvgController(domElement)
     }
 
     if (domElement instanceof HTMLElement) {
-      domController = makeDomController(domElement)
+      panController = makeDomController(domElement)
     }
   }
 
-  if (!domController) {
+  if (!panController) {
     throw new Error('Cannot create panzoom for the current type of dom element')
   }
-  var owner = domController.getOwner()
+  var owner = panController.getOwner()
   // just to avoid GC pressure, every time we do intermediate transform
   // we return this object. For internal use only. Never give it back to the consumer of this library
   var storedCTMResult = {x: 0, y: 0}
@@ -52,8 +52,8 @@ function createPanZoom(domElement, options) {
   var isDirty = false
   var transform = new Transform()
 
-  if (domController.initTransform) {
-    domController.initTransform(transform)
+  if (panController.initTransform) {
+    panController.initTransform(transform)
   }
 
   var filterKey = typeof options.filterKey === 'function' ? options.filterKey : noop;
@@ -106,7 +106,7 @@ function createPanZoom(domElement, options) {
 
   listenForEvents()
 
-  return {
+  var api = {
     dispose: dispose,
     moveBy: internalMoveBy,
     moveTo: moveTo,
@@ -121,6 +121,10 @@ function createPanZoom(domElement, options) {
     resume: resume,
     isPaused: isPaused,
   }
+
+  eventify(api);
+
+  return api;
 
   function pause() {
     releaseEvents()
@@ -157,8 +161,8 @@ function createPanZoom(domElement, options) {
   }
 
   function transformToScreen(x, y) {
-    if (domController.getScreenCTM) {
-      var parentCTM = domController.getScreenCTM()
+    if (panController.getScreenCTM) {
+      var parentCTM = panController.getScreenCTM()
       var parentScaleX = parentCTM.a
       var parentScaleY = parentCTM.d
       var parentOffsetX = parentCTM.e
@@ -191,7 +195,7 @@ function createPanZoom(domElement, options) {
       w = ownerRect.width
       h = ownerRect.height
     }
-    var bbox = domController.getBBox()
+    var bbox = panController.getBBox()
     if (bbox.width === 0 || bbox.height === 0) {
       // we probably do not have any elements in the SVG
       // just bail out;
@@ -293,7 +297,7 @@ function createPanZoom(domElement, options) {
   }
 
   function getClientRect() {
-    var bbox = domController.getBBox()
+    var bbox = panController.getBBox()
     var leftTop = client(bbox.left, bbox.top)
 
     return {
@@ -441,7 +445,7 @@ function createPanZoom(domElement, options) {
     isDirty = false
 
     // TODO: Should I allow to cancel this?
-    domController.applyTransform(transform)
+    panController.applyTransform(transform)
 
     triggerEvent('transform')
     frameAnimation = 0
@@ -724,9 +728,6 @@ function createPanZoom(domElement, options) {
       smoothScroll.cancel()
       cancelZoomAnimation()
 
-      // TODO: should consolidate this and publicZoomTo
-      triggerEvent('zoom')
-
       zoomToAnimation = animate(from, to, {
         step: function(v) {
           zoomAbs(clientX, clientY, v.scale)
@@ -775,8 +776,7 @@ function createPanZoom(domElement, options) {
   }
 
   function triggerEvent(name) {
-    var event = createEvent(name)
-    domElement.dispatchEvent(event)
+    api.fire(name, api);
   }
 }
 
@@ -885,28 +885,7 @@ function autoRun() {
 
 autoRun();
 
-},{"./lib/createEvent.js":2,"./lib/domController.js":3,"./lib/kinetic.js":4,"./lib/svgController.js":5,"./lib/textSelectionInterceptor.js":6,"./lib/transform.js":7,"amator":8,"wheel":10}],2:[function(require,module,exports){
-/* global Event */
-module.exports = createEvent;
-
-var isIE = typeof Event !== 'function'
-
-/**
- * Constructs custom event. Works in IE too
- */
-function createEvent(name) {
-  if (isIE) {
-    var evt = document.createEvent('CustomEvent')
-    evt.initCustomEvent(name, true, true, undefined)
-    return evt
-  } else {
-    return new Event(name, {
-      bubbles: true
-    })
-  }
-}
-
-},{}],3:[function(require,module,exports){
+},{"./lib/domController.js":2,"./lib/kinetic.js":3,"./lib/svgController.js":4,"./lib/textSelectionInterceptor.js":5,"./lib/transform.js":6,"amator":7,"ngraph.events":9,"wheel":10}],2:[function(require,module,exports){
 module.exports = makeDomController
 
 function makeDomController(domElement) {
@@ -957,7 +936,7 @@ function makeDomController(domElement) {
   }
 }
 
-},{}],4:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 /**
  * Allows smooth kinetic scrolling of the surface
  */
@@ -1079,7 +1058,7 @@ function kinetic(getPoint, scroll, settings) {
 
 }
 
-},{}],5:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 module.exports = makeSvgController
 
 function makeSvgController(svgElement) {
@@ -1141,7 +1120,7 @@ function makeSvgController(svgElement) {
       transform.x + ' ' + transform.y + ')')
   }
 }
-},{}],6:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 /**
  * Disallows selecting text.
  */
@@ -1178,7 +1157,7 @@ function disabled(e) {
   return false
 }
 
-},{}],7:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 module.exports = Transform;
 
 function Transform() {
@@ -1187,7 +1166,7 @@ function Transform() {
   this.scale = 1;
 }
 
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var BezierEasing = require('bezier-easing')
 
 // Predefined set of animations. Similar to CSS easing functions
@@ -1343,7 +1322,7 @@ function makeAggregateRaf() {
   }
 }
 
-},{"bezier-easing":9}],9:[function(require,module,exports){
+},{"bezier-easing":8}],8:[function(require,module,exports){
 /**
  * https://github.com/gre/bezier-easing
  * BezierEasing - use bezier curve for transition easing function
@@ -1451,6 +1430,96 @@ module.exports = function bezier (mX1, mY1, mX2, mY2) {
     return calcBezier(getTForX(x), mY1, mY2);
   };
 };
+
+},{}],9:[function(require,module,exports){
+module.exports = function(subject) {
+  validateSubject(subject);
+
+  var eventsStorage = createEventsStorage(subject);
+  subject.on = eventsStorage.on;
+  subject.off = eventsStorage.off;
+  subject.fire = eventsStorage.fire;
+  return subject;
+};
+
+function createEventsStorage(subject) {
+  // Store all event listeners to this hash. Key is event name, value is array
+  // of callback records.
+  //
+  // A callback record consists of callback function and its optional context:
+  // { 'eventName' => [{callback: function, ctx: object}] }
+  var registeredEvents = Object.create(null);
+
+  return {
+    on: function (eventName, callback, ctx) {
+      if (typeof callback !== 'function') {
+        throw new Error('callback is expected to be a function');
+      }
+      var handlers = registeredEvents[eventName];
+      if (!handlers) {
+        handlers = registeredEvents[eventName] = [];
+      }
+      handlers.push({callback: callback, ctx: ctx});
+
+      return subject;
+    },
+
+    off: function (eventName, callback) {
+      var wantToRemoveAll = (typeof eventName === 'undefined');
+      if (wantToRemoveAll) {
+        // Killing old events storage should be enough in this case:
+        registeredEvents = Object.create(null);
+        return subject;
+      }
+
+      if (registeredEvents[eventName]) {
+        var deleteAllCallbacksForEvent = (typeof callback !== 'function');
+        if (deleteAllCallbacksForEvent) {
+          delete registeredEvents[eventName];
+        } else {
+          var callbacks = registeredEvents[eventName];
+          for (var i = 0; i < callbacks.length; ++i) {
+            if (callbacks[i].callback === callback) {
+              callbacks.splice(i, 1);
+            }
+          }
+        }
+      }
+
+      return subject;
+    },
+
+    fire: function (eventName) {
+      var callbacks = registeredEvents[eventName];
+      if (!callbacks) {
+        return subject;
+      }
+
+      var fireArguments;
+      if (arguments.length > 1) {
+        fireArguments = Array.prototype.splice.call(arguments, 1);
+      }
+      for(var i = 0; i < callbacks.length; ++i) {
+        var callbackInfo = callbacks[i];
+        callbackInfo.callback.apply(callbackInfo.ctx, fireArguments);
+      }
+
+      return subject;
+    }
+  };
+}
+
+function validateSubject(subject) {
+  if (!subject) {
+    throw new Error('Eventify cannot use falsy object as events subject');
+  }
+  var reservedWords = ['on', 'fire', 'off'];
+  for (var i = 0; i < reservedWords.length; ++i) {
+    if (subject.hasOwnProperty(reservedWords[i])) {
+      throw new Error("Subject cannot be eventified, since it already has property '" + reservedWords[i] + "'");
+    }
+  }
+}
 
 },{}],10:[function(require,module,exports){
 /**

@@ -471,6 +471,8 @@ function createPanZoom(domElement, options) {
       return;
     }
 
+    transform = panController.getTransform();
+
     if (x || y) {
       e.preventDefault()
       e.stopPropagation()
@@ -496,6 +498,8 @@ function createPanZoom(domElement, options) {
   function onTouch(e) {
     // let the override the touch behavior
     beforeTouch(e);
+
+    transform = panController.getTransform();
 
     if (e.touches.length === 1) {
       return handleSingleFingerTouch(e, e.touches[0])
@@ -624,6 +628,7 @@ function createPanZoom(domElement, options) {
 
   function onDoubleClick(e) {
     beforeDoubleClick(e);
+    transform = panController.getTransform();
     var offset = getOffsetXY(e)
     smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
   }
@@ -639,6 +644,8 @@ function createPanZoom(domElement, options) {
     // for Firefox, left click == 0
     var isLeftButton = ((e.button === 1 && window.event !== null) || e.button === 0)
     if (!isLeftButton) return
+
+    transform = panController.getTransform();
 
     smoothScroll.cancel()
 

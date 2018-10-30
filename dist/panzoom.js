@@ -472,6 +472,8 @@ function createPanZoom(domElement, options) {
       return;
     }
 
+    transform = panController.getTransform();
+
     if (x || y) {
       e.preventDefault()
       e.stopPropagation()
@@ -497,6 +499,8 @@ function createPanZoom(domElement, options) {
   function onTouch(e) {
     // let the override the touch behavior
     beforeTouch(e);
+
+    transform = panController.getTransform();
 
     if (e.touches.length === 1) {
       return handleSingleFingerTouch(e, e.touches[0])
@@ -625,6 +629,7 @@ function createPanZoom(domElement, options) {
 
   function onDoubleClick(e) {
     beforeDoubleClick(e);
+    transform = panController.getTransform();
     var offset = getOffsetXY(e)
     smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
   }
@@ -640,6 +645,8 @@ function createPanZoom(domElement, options) {
     // for Firefox, left click == 0
     var isLeftButton = ((e.button === 1 && window.event !== null) || e.button === 0)
     if (!isLeftButton) return
+
+    transform = panController.getTransform();
 
     smoothScroll.cancel()
 
@@ -888,6 +895,8 @@ autoRun();
 },{"./lib/domController.js":2,"./lib/kinetic.js":3,"./lib/svgController.js":4,"./lib/textSelectionInterceptor.js":5,"./lib/transform.js":6,"amator":7,"ngraph.events":9,"wheel":10}],2:[function(require,module,exports){
 module.exports = makeDomController
 
+var Transform = require('./transform.js');
+
 function makeDomController(domElement) {
   var elementValid = (domElement instanceof HTMLElement)
   if (!elementValid) {
@@ -908,8 +917,9 @@ function makeDomController(domElement) {
     getBBox: getBBox,
     getOwner: getOwner,
     applyTransform: applyTransform,
+    getTransform: getTransform,
   }
-  
+
   return api
 
   function getOwner() {
@@ -934,9 +944,24 @@ function makeDomController(domElement) {
       transform.scale + ', ' +
       transform.x + ', ' + transform.y + ')'
   }
+
+  function getTransform() {
+    var transformStyle = domElement.style.transform;
+    var transform = new Transform();
+    if (!transformStyle.startsWith('matrix(')) {
+      return transform;
+    }
+
+    var transformArray = transformStyle.substring(transformStyle.indexOf('(') + 1, transformStyle.lastIndexOf(')')).split(', ');
+    transform.x = parseFloat(transformArray[4]);
+    transform.y = parseFloat(transformArray[5]);
+    transform.scale = parseFloat(transformArray[0]);
+
+    return transform;
+  }
 }
 
-},{}],3:[function(require,module,exports){
+},{"./transform.js":6}],3:[function(require,module,exports){
 /**
  * Allows smooth kinetic scrolling of the surface
  */
@@ -1061,6 +1086,8 @@ function kinetic(getPoint, scroll, settings) {
 },{}],4:[function(require,module,exports){
 module.exports = makeSvgController
 
+var Transform = require('./transform.js');
+
 function makeSvgController(svgElement) {
   var elementValid = (svgElement instanceof SVGElement)
   if (!elementValid) {
@@ -1082,9 +1109,10 @@ function makeSvgController(svgElement) {
     getScreenCTM: getScreenCTM,
     getOwner: getOwner,
     applyTransform: applyTransform,
-    initTransform: initTransform
+    initTransform: initTransform,
+    getTransform: getTransform,
   }
-  
+
   return api
 
   function getOwner() {
@@ -1119,8 +1147,23 @@ function makeSvgController(svgElement) {
       transform.scale + ' ' +
       transform.x + ' ' + transform.y + ')')
   }
+
+  function getTransform() {
+    var transformStyle = svgElement.getAttribute('transform');
+    var transform = new Transform();
+    if (!transformStyle.startsWith('matrix(')) {
+      return transform;
+    }
+
+    var transformArray = transformStyle.substring(transformStyle.indexOf('(') + 1, transformStyle.lastIndexOf(')')).split(' ');
+    transform.x = parseFloat(transformArray[4]);
+    transform.y = parseFloat(transformArray[5]);
+    transform.scale = parseFloat(transformArray[0]);
+
+    return transform;
+  }
 }
-},{}],5:[function(require,module,exports){
+},{"./transform.js":6}],5:[function(require,module,exports){
 /**
  * Disallows selecting text.
  */

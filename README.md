@@ -202,7 +202,7 @@ If you want to quickly play with panzoom without using javascript, you can confi
 <!DOCTYPE html>
 <html>
 <head>
-  <script src='https://cdn.rawgit.com/anvaka/panzoom/v6.1.3/dist/panzoom.min.js'
+  <script src='https://cdn.combinatronics.com/anvaka/panzoom/v6.1.3/dist/panzoom.min.js'
     query='#scene' name='pz'></script>
 </head>
 <body>

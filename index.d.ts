@@ -45,8 +45,8 @@ declare module "panzoom" {
     resume: () => void;
     isPaused: () => boolean;
     on: <T>(eventName: string, handler: (e: T) => void) => void;
-    off: (eventName, handler: Function) => void;
-    fire: (eventName) => void;
+    off: (eventName: string, handler: Function) => void;
+    fire: (eventName: string) => void;
   }
 
   export default function createPanZoom(

@@ -5,6 +5,7 @@ Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).
 # Demo
 
  * [Regular DOM object](https://anvaka.github.io/panzoom/demo/dom.html)
+ * [Advanced usage](https://anvaka.github.io/panzoom/demo/dom-advanced.html)
  * [Standalone page](https://anvaka.github.io/panzoom/demo/index.html) - this repository
  * [YASIV](http://www.yasiv.com/#/Search?q=algorithms&category=Books&lang=US) - my hobby project
  * [SVG Tiger](https://jsfiddle.net/uwxcmbyg/609/) - js fiddle
@@ -109,7 +110,39 @@ instance.on('transform', function(e) {
 
 See [JSFiddle](https://jsfiddle.net/uwxcmbyg/609/) console for a demo.
 
-## Ignore mouse wheel
+## Advanced usage
+
+The following functions can be passed to modify the default behavior:
+
+```
+beforeWheel
+beforeDblClick
+beforeMouseDown
+beforeTouch
+beforeKeyDown
+```
+
+Each of these can return an object containing: `{ ignore: boolean, propagete: boolean }`.
+If you specify `ignore: true` the library will not handle this event.
+If both values are `true` or `false`, you can just return the boolean.
+
+This allows to for example to implement two-finger pan or the use of modifier keys.
+
+2 examples of this:
+
+### Two-finger pan 
+
+To avoid panning interfering with normal scrolling, you can add a `beforeTouch` handler.
+``` js
+panzoom(document.getElementById('g4'), {
+  beforeTouch: function(e) {
+    // allow touch-pan only with 2 fingers
+    return e.touches.length < 2;
+  }
+});
+```
+
+### Scroll-zoom with modifier key
 
 Sometimes zooming interferes with scrolling. If you want to alleviate it you
 can provide a custom filter, which will allow zooming only when modifier key is
@@ -118,27 +151,24 @@ down. E.g.
 ``` js
 panzoom(document.getElementById('g4'), {
   beforeWheel: function(e) {
-    // allow wheel-zoom only if altKey is down. Otherwise - ignore
-    var shouldIgnore = !e.altKey;
-    return shouldIgnore;
-  }
+    // allow wheel-zoom only if ctrlKey is down. Otherwise - ignore
+    return !e.ctrlKey;
+  },
 });
 ```
 
 See [JSFiddle](https://jsfiddle.net/Laxq9jLu/) for the demo. The tiger will be
 zoomable only when `Alt` key is down.
 
-
-## Ignore keyboard events
+### Ignore keyboard events
 
 By default, panzoom will listen to keyboard events, so that users can navigate the scene
 with arrow keys and `+`, `-` signs to zoom out. If you don't want this behavior you can
-pass the `filterKey()` predicate that returns truthy value to prevent panzoom's default
-behavior:
+use `beforeKeyDown()`.
 
 ``` js
 panzoom(document.getElementById('g4'), {
-  filterKey: function(/* e, dx, dy, dz */) {
+  beforeKeyDown: function(e) {
     // don't let panzoom handle this event:
     return true;
   }

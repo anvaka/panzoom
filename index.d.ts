@@ -6,8 +6,12 @@ declare module "panzoom" {
     bottom: number;
   }
 
+  export interface EventInstructions {
+    ignore: boolean,
+    propage: boolean,
+  }
+
   export interface PanZoomOptions {
-    filterKey?: () => boolean;
     bounds?: boolean | Bounds;
     realPinch?: boolean;
     maxZoom?: number;
@@ -15,7 +19,11 @@ declare module "panzoom" {
     boundsPadding?: number;
     zoomDoubleClickSpeed?: number;
     zoomSpeed?: number;
-    beforeWheel?: (e: WheelEvent) => void;
+    beforeWheel?: (e: WheelEvent) => boolean | EventInstructions;
+    beforeDblClick?: (e: MouseEvent) => boolean | EventInstructions;
+    beforeMouseDown?: (e: MouseEvent) => boolean | EventInstructions;
+    beforeTouch?: (e: TouchEvent) => boolean | EventInstructions;
+    beforeKeyDown?: (e: KeyboardEvent) => boolean | EventInstructions;
     autocenter?: boolean;
     onTouch?: (e: TouchEvent) => void;
     onDoubleClick?: (e: Event) => void;

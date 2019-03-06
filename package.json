@@ -1,11 +1,14 @@
 {
   "name": "panzoom",
-  "version": "7.1.2",
+  "version": "8.0.0",
   "description": "Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).",
   "main": "index.js",
+  "publishConfig": {
+    "registry": "https://bin.barco.com/artifactory/api/npm/npm-local"
+  },
   "scripts": {
     "test": "tap test/*.js",
-    "build": "browserify -s panzoom ./index.js > dist/panzoom.js && uglifyjs dist/panzoom.js > dist/panzoom.min.js"
+    "build": "browserify -s panzoom ./index.js > dist/panzoom.js && terser dist/panzoom.js > dist/panzoom.min.js"
   },
   "keywords": [
     "dom",
@@ -28,6 +31,6 @@
     "browserify": "^16.2.3",
     "jsdom": "^11.12.0",
     "tap": "^12.0.0",
-    "uglify-js": "^3.4.9"
+    "terser": "^3.16.1"
   }
 }

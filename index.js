@@ -19,6 +19,16 @@ var doubleTapSpeedInMS = 300
 
 module.exports = createPanZoom
 
+function sanitizeInstructions(instructions = { ignore: false, propagate: false }) {
+  if (typeof instructions === 'boolean') {
+    instructions = { ignore: instructions, propagate: instructions };
+  }
+
+  if (typeof instructions.propagate === 'undefined') {
+    instructions.propagate = instructions.ignore;
+  }
+  return instructions;
+}
 /**
  * Creates a new instance of panzoom, so that an object can be panned and zoomed
  *
@@ -55,7 +65,6 @@ function createPanZoom(domElement, options) {
     panController.initTransform(transform)
   }
 
-  var filterKey = typeof options.filterKey === 'function' ? options.filterKey : noop;
   var realPinch = typeof options.realPinch === 'boolean' ? options.realPinch : false
   var bounds = options.bounds
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
@@ -63,7 +72,11 @@ function createPanZoom(domElement, options) {
 
   var boundsPadding = typeof options.boundsPadding === 'number' ? options.boundsPadding : 0.05
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
-  var beforeWheel = options.beforeWheel || noop
+  var beforeWheel = options.beforeWheel || defaultBeforeHandler;
+  var beforeDblClick = options.beforeDblClick || defaultBeforeHandler;
+  var beforeMouseDown = options.beforeMouseDown || defaultBeforeMouseDownHandler;
+  var beforeTouch = options.beforeTouch || defaultBeforeHandler;
+  var beforeKeyDown = options.beforeKeyDown || defaultBeforeHandler;
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
 
   validateBounds(bounds)
@@ -84,6 +97,7 @@ function createPanZoom(domElement, options) {
   // cache mouse coordinates here
   var mouseX
   var mouseY
+  var touches = 0
 
   var pinchZoomLength
 
@@ -406,7 +420,7 @@ function createPanZoom(domElement, options) {
   function listenForEvents() {
     owner.addEventListener('mousedown', onMouseDown)
     owner.addEventListener('dblclick', onDoubleClick)
-    owner.addEventListener('touchstart', onTouch)
+    owner.addEventListener('touchstart', onTouch, { passive: false })
     owner.addEventListener('keydown', onKeyDown)
 
     // Need to listen on the owner container, so that we are not limited
@@ -452,6 +466,15 @@ function createPanZoom(domElement, options) {
   }
 
   function onKeyDown(e) {
+    var instructions = sanitizeInstructions(sanitizeInstructions(beforeKeyDown(e)));
+  
+    if (!instructions.propagate) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    if (instructions.ignore) return;
+
     var x = 0, y = 0, z = 0
     if (e.keyCode === 38) {
       y = 1 // up
@@ -467,15 +490,7 @@ function createPanZoom(domElement, options) {
       z = -1 // `=` - zoom in (equal sign on US layout is under `+`)
     }
 
-    if (filterKey(e, x, y, z)) {
-      // They don't want us to handle the key: https://github.com/anvaka/panzoom/issues/45
-      return;
-    }
-
     if (x || y) {
-      e.preventDefault()
-      e.stopPropagation()
-
       var clientRect = owner.getBoundingClientRect()
       // movement speed should be the same in both X and Y direction:
       var offset = Math.min(clientRect.width, clientRect.height)
@@ -495,84 +510,62 @@ function createPanZoom(domElement, options) {
   }
 
   function onTouch(e) {
-    // let the override the touch behavior
-    beforeTouch(e);
-
-    if (e.touches.length === 1) {
-      return handleSingleFingerTouch(e, e.touches[0])
-    } else if (e.touches.length === 2) {
-      // handleTouchMove() will care about pinch zoom.
-      pinchZoomLength = getPinchZoomLength(e.touches[0], e.touches[1])
-      multitouch  = true
-      startTouchListenerIfNeeded()
-    }
-  }
-
-  function beforeTouch(e) {
-    if (options.onTouch && !options.onTouch(e)) {
-      // if they return `false` from onTouch, we don't want to stop
-      // events propagation. Fixes https://github.com/anvaka/panzoom/issues/12
-      return
+    var instructions = sanitizeInstructions(beforeTouch(e));
+ 
+    if (!instructions.propagate) {
+      e.stopPropagation()
+      e.preventDefault()
     }
 
-    e.stopPropagation()
-    e.preventDefault()
+    if (instructions.ignore) return;
+    cacheTouchData(e);
+    startTouchListenerIfNeeded();
   }
 
-  function beforeDoubleClick(e) {
-    if (options.onDoubleClick && !options.onDoubleClick(e)) {
-      // if they return `false` from onTouch, we don't want to stop
-      // events propagation. Fixes https://github.com/anvaka/panzoom/issues/46
-      return
-    }
-
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
-  function handleSingleFingerTouch(e) {
-    var touch = e.touches[0]
-    var offset = getOffsetXY(touch)
+  function cacheTouchData(e) {
+    touches = e.touches;
+    var offset = getAverageOffset(e.touches);
     mouseX = offset.x
     mouseY = offset.y
-
-    smoothScroll.cancel()
-    startTouchListenerIfNeeded()
+    if (e.touches.length > 1) {
+      pinchZoomLength = getPinchZoomLength(e.touches[0], e.touches[1]);
+    }
+    multitouch = touches.length > 1;
   }
 
   function startTouchListenerIfNeeded() {
     if (!touchInProgress) {
       touchInProgress = true
-      document.addEventListener('touchmove', handleTouchMove)
-      document.addEventListener('touchend', handleTouchEnd)
-      document.addEventListener('touchcancel', handleTouchEnd)
+      smoothScroll.cancel()
+      document.addEventListener('touchmove', handleTouchMove, { passive: false })
+      document.addEventListener('touchend', handleTouchEnd, { passive: false })
+      document.addEventListener('touchcancel', handleTouchEnd, { passive: false })
     }
   }
 
   function handleTouchMove(e) {
-    if (e.touches.length === 1) {
-      e.stopPropagation()
-      var touch = e.touches[0]
+    if (touches.length !== e.touches.length) {
+      cacheTouchData(e);
+    }
 
-      var offset = getOffsetXY(touch)
+    e.stopPropagation()
+    e.preventDefault()
 
-      var dx = offset.x - mouseX
-      var dy = offset.y - mouseY
+    var offset = getAverageOffset(e.touches);
+    var dx = offset.x - mouseX
+    var dy = offset.y - mouseY
+    if (dx !== 0 && dy !== 0) {
+      triggerPanStart()
+    }
+    mouseX = offset.x
+    mouseY = offset.y
+    var point = transformToScreen(dx, dy)
+    internalMoveBy(point.x, point.y)
 
-      if (dx !== 0 && dy !== 0) {
-        triggerPanStart()
-      }
-      mouseX = offset.x
-      mouseY = offset.y
-      var point = transformToScreen(dx, dy)
-      internalMoveBy(point.x, point.y)
-    } else if (e.touches.length === 2) {
-      // it's a zoom, let's find direction
-      multitouch = true
+    if (multitouch) {
       var t1 = e.touches[0]
       var t2 = e.touches[1]
       var currentPinchLength = getPinchZoomLength(t1, t2)
-
       var scaleMultiplier = 1
 
       if (realPinch) {
@@ -587,15 +580,8 @@ function createPanZoom(domElement, options) {
 
         scaleMultiplier = getScaleMultiplier(delta)
       }
-
-      mouseX = (t1.clientX + t2.clientX)/2
-      mouseY = (t1.clientY + t2.clientY)/2
-
       publicZoomTo(mouseX, mouseY, scaleMultiplier)
-
       pinchZoomLength = currentPinchLength
-      e.stopPropagation()
-      e.preventDefault()
     }
   }
 
@@ -624,7 +610,15 @@ function createPanZoom(domElement, options) {
   }
 
   function onDoubleClick(e) {
-    beforeDoubleClick(e);
+    var instructions = sanitizeInstructions(beforeDblClick(e));
+ 
+    if (!instructions.propagate) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    if (instructions.ignore) return;
+
     var offset = getOffsetXY(e)
     smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
   }
@@ -636,10 +630,15 @@ function createPanZoom(domElement, options) {
       e.stopPropagation()
       return false
     }
-    // for IE, left click == 1
-    // for Firefox, left click == 0
-    var isLeftButton = ((e.button === 1 && window.event !== null) || e.button === 0)
-    if (!isLeftButton) return
+
+    var instructions = sanitizeInstructions(beforeMouseDown(e));
+ 
+    if (!instructions.propagate) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    if (instructions.ignore) return;
 
     smoothScroll.cancel()
 
@@ -697,7 +696,9 @@ function createPanZoom(domElement, options) {
 
   function onMouseWheel(e) {
     // if client does not want to handle this event - just ignore the call
-    if (beforeWheel(e)) return
+    var instructions = sanitizeInstructions(beforeWheel(e));
+
+    if (instructions.ignore) return
 
     smoothScroll.cancel()
 
@@ -706,8 +707,21 @@ function createPanZoom(domElement, options) {
     if (scaleMultiplier !== 1) {
       var offset = getOffsetXY(e)
       publicZoomTo(offset.x, offset.y, scaleMultiplier)
-      e.preventDefault()
+      if (!instructions.propagate) {
+        e.preventDefault()
+      }
     }
+  }
+
+  function getAverageOffset(touches) {
+    var averageX = 0;
+    var averageY = 0;
+    for (var i = 0; i < touches.length; i++) {
+      averageX += touches[i].clientX;
+      averageY += touches[i].clientY;
+    }
+    
+    return getOffsetXY({ clientX: averageX / touches.length, clientY: averageY / touches.length });
   }
 
   function getOffsetXY(e) {
@@ -717,7 +731,7 @@ function createPanZoom(domElement, options) {
     offsetX = e.clientX - ownerRect.left
     offsetY = e.clientY - ownerRect.top
 
-    return {x: offsetX, y: offsetY};
+    return { x: offsetX, y: offsetY };
   }
 
   function smoothZoom(clientX, clientY, scaleMultiplier) {
@@ -781,6 +795,17 @@ function createPanZoom(domElement, options) {
 }
 
 function noop() { }
+
+function defaultBeforeHandler() { return { ignore: false, propagate: false } }
+
+function defaultBeforeMouseDownHandler(e) {
+  // for IE, left click == 1
+  // for Firefox, left click == 0
+  var isLeftButton = ((e.button === 1 && window.event !== null) || e.button === 0)
+  return { ignore: !isLeftButton, propagate: true };
+}
+createPanZoom.defaultBeforeMouseDownHandler = defaultBeforeMouseDownHandler;
+
 
 function validateBounds(bounds) {
   var boundsType = typeof bounds

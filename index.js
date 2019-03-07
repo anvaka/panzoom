@@ -448,6 +448,8 @@ function createPanZoom(domElement, options) {
     releaseTouches()
 
     triggerPanEnd()
+
+    api.off()
   }
 
 

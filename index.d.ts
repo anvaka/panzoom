@@ -27,6 +27,8 @@ declare module "panzoom" {
     dispose: () => void;
     moveBy: (dx: number, dy: number, smooth: boolean) => void;
     moveTo: (x: number, y: number) => void;
+    moveToCenterOfElement: (element: Element, xOffset: number = 0, yOffset: number = 0) => void;
+    moveToCenterOfBounds: (bounds: DOMRect, xOffset: number = 0, yOffset: number = 0) => void;
     centerOn: (ui: any) => void;
     zoomTo: (clientX: number, clientY: number, scaleMultiplier: number) => void;
     zoomAbs: (clientX: number, clientY: number, zoomLevel: number) => void;

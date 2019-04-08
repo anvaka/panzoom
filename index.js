@@ -32,11 +32,11 @@ function createPanZoom(domElement, options) {
 
   if (!panController) {
     if (domElement instanceof SVGElement) {
-      panController = makeSvgController(domElement)
+      panController = makeSvgController(domElement, options)
     }
 
     if (domElement instanceof HTMLElement) {
-      panController = makeDomController(domElement)
+      panController = makeDomController(domElement, options)
     }
   }
 

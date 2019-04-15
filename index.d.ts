@@ -51,6 +51,6 @@ declare module "panzoom" {
 
   export default function createPanZoom(
     domElement: HTMLElement | SVGElement,
-    Options: PanZoomOptions
+    options?: PanZoomOptions
   ): PanZoom;
 }

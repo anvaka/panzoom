@@ -32,11 +32,11 @@ function createPanZoom(domElement, options) {
 
   if (!panController) {
     if (domElement instanceof SVGElement) {
-      panController = makeSvgController(domElement)
+      panController = makeSvgController(domElement, options)
     }
 
     if (domElement instanceof HTMLElement) {
-      panController = makeDomController(domElement)
+      panController = makeDomController(domElement, options)
     }
   }
 
@@ -100,7 +100,7 @@ function createPanZoom(domElement, options) {
   var moveByAnimation
   var zoomToAnimation
 
-  var multitouch
+  var multiTouch
   var paused = false
 
   listenForEvents()
@@ -143,7 +143,8 @@ function createPanZoom(domElement, options) {
 
   function showRectangle(rect) {
     // TODO: this duplicates autocenter. I think autocenter should go.
-    var size = transformToScreen(owner.clientWidth, owner.clientHeight)
+    var clientRect = owner.getBoundingClientRect()
+    var size = transformToScreen(clientRect.width, clientRect.height)
 
     var rectWidth = rect.right - rect.left
     var rectHeight = rect.bottom - rect.top
@@ -502,7 +503,7 @@ function createPanZoom(domElement, options) {
     } else if (e.touches.length === 2) {
       // handleTouchMove() will care about pinch zoom.
       pinchZoomLength = getPinchZoomLength(e.touches[0], e.touches[1])
-      multitouch  = true
+      multiTouch  = true
       startTouchListenerIfNeeded()
     }
   }
@@ -567,7 +568,7 @@ function createPanZoom(domElement, options) {
       internalMoveBy(point.x, point.y)
     } else if (e.touches.length === 2) {
       // it's a zoom, let's find direction
-      multitouch = true
+      multiTouch = true
       var t1 = e.touches[0]
       var t2 = e.touches[1]
       var currentPinchLength = getPinchZoomLength(t1, t2)
@@ -691,7 +692,7 @@ function createPanZoom(domElement, options) {
     document.removeEventListener('touchend', handleTouchEnd)
     document.removeEventListener('touchcancel', handleTouchEnd)
     panstartFired = false
-    multitouch = false
+    multiTouch = false
   }
 
   function onMouseWheel(e) {
@@ -768,8 +769,8 @@ function createPanZoom(domElement, options) {
 
   function triggerPanEnd() {
     if (panstartFired) {
-      // we should never run smooth scrolling if it was multitouch (pinch zoom animation):
-      if (!multitouch) smoothScroll.stop()
+      // we should never run smooth scrolling if it was multiTouch (pinch zoom animation):
+      if (!multiTouch) smoothScroll.stop()
       triggerEvent('panend')
     }
   }

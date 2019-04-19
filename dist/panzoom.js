@@ -33,11 +33,11 @@ function createPanZoom(domElement, options) {
 
   if (!panController) {
     if (domElement instanceof SVGElement) {
-      panController = makeSvgController(domElement)
+      panController = makeSvgController(domElement, options)
     }
 
     if (domElement instanceof HTMLElement) {
-      panController = makeDomController(domElement)
+      panController = makeDomController(domElement, options)
     }
   }
 
@@ -144,7 +144,8 @@ function createPanZoom(domElement, options) {
 
   function showRectangle(rect) {
     // TODO: this duplicates autocenter. I think autocenter should go.
-    var size = transformToScreen(owner.clientWidth, owner.clientHeight)
+    var clientRect = owner.getBoundingClientRect()
+    var size = transformToScreen(clientRect.width, clientRect.height)
 
     var rectWidth = rect.right - rect.left
     var rectHeight = rect.bottom - rect.top
@@ -888,7 +889,7 @@ autoRun();
 },{"./lib/domController.js":2,"./lib/kinetic.js":3,"./lib/svgController.js":4,"./lib/textSelectionInterceptor.js":5,"./lib/transform.js":6,"amator":7,"ngraph.events":9,"wheel":10}],2:[function(require,module,exports){
 module.exports = makeDomController
 
-function makeDomController(domElement) {
+function makeDomController(domElement, options) {
   var elementValid = (domElement instanceof HTMLElement)
   if (!elementValid) {
     throw new Error('svg element is required for svg.panzoom to work')
@@ -902,7 +903,10 @@ function makeDomController(domElement) {
   }
 
   domElement.scrollTop = 0;
-  owner.setAttribute('tabindex', 1); // TODO: not sure if this is really polite
+  
+  if (!options.disableKeyboardInteraction) {
+    owner.setAttribute('tabindex', 0);
+  }
 
   var api = {
     getBBox: getBBox,
@@ -1061,7 +1065,7 @@ function kinetic(getPoint, scroll, settings) {
 },{}],4:[function(require,module,exports){
 module.exports = makeSvgController
 
-function makeSvgController(svgElement) {
+function makeSvgController(svgElement, options) {
   var elementValid = (svgElement instanceof SVGElement)
   if (!elementValid) {
     throw new Error('svg element is required for svg.panzoom to work')
@@ -1075,7 +1079,9 @@ function makeSvgController(svgElement) {
       'As of March 2016 only FireFox supported transform on the root element')
   }
 
-  owner.setAttribute('tabindex', 1); // TODO: not sure if this is really polite
+  if (!options.disableKeyboardInteraction) {
+    owner.setAttribute('tabindex', 0);
+  }
 
   var api = {
     getBBox: getBBox,

@@ -1,11 +1,12 @@
 {
   "name": "panzoom",
-  "version": "7.0.2",
+  "version": "7.2.2",
   "description": "Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).",
   "main": "index.js",
   "scripts": {
     "test": "tap test/*.js",
-    "build": "browserify -s panzoom ./index.js > dist/panzoom.js && uglifyjs dist/panzoom.js > dist/panzoom.min.js"
+    "build": "browserify -s panzoom ./index.js > dist/panzoom.js && uglifyjs dist/panzoom.js > dist/panzoom.min.js",
+    "start": "npm run build"
   },
   "keywords": [
     "dom",

@@ -4,10 +4,10 @@ Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).
 
 # Demo
 
- * [Regular DOM object](https:////anvaka.github.io/panzoom/demo/dom.html)
- * [Standalone page](https:////anvaka.github.io/panzoom/demo/index.html) - this repository
+ * [Regular DOM object](https://anvaka.github.io/panzoom/demo/dom.html)
+ * [Standalone page](https://anvaka.github.io/panzoom/demo/index.html) - this repository
  * [YASIV](http://www.yasiv.com/#/Search?q=algorithms&category=Books&lang=US) - my hobby project
- * [SVG Tiger](https://jsfiddle.net/uwxcmbyg/) - js fiddle
+ * [SVG Tiger](https://jsfiddle.net/uwxcmbyg/609/) - js fiddle
 
 # Usage
 
@@ -20,7 +20,7 @@ npm install panzoom --save
 Or download from CDN:
 
 ```
-<script src='https://unpkg.com/panzoom@7.0.2/dist/panzoom.min.js'></script>
+<script src='https://unpkg.com/panzoom@7.1.2/dist/panzoom.min.js'></script>
 ```
 
 If you download from CDN the library will be available under `panzoom` global name.
@@ -107,7 +107,7 @@ instance.on('transform', function(e) {
 });
 ```
 
-See [JSFiddle](https://jsfiddle.net/uwxcmbyg/1/) console for a demo.
+See [JSFiddle](https://jsfiddle.net/uwxcmbyg/609/) console for a demo.
 
 ## Ignore mouse wheel
 
@@ -202,7 +202,7 @@ If you want to quickly play with panzoom without using javascript, you can confi
 <!DOCTYPE html>
 <html>
 <head>
-  <script src='https://cdn.rawgit.com/anvaka/panzoom/v6.1.3/dist/panzoom.min.js'
+  <script src='https://unpkg.com/panzoom@7.1.2/dist/panzoom.min.js'
     query='#scene' name='pz'></script>
 </head>
 <body>

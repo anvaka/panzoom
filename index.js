@@ -56,7 +56,8 @@ function createPanZoom(domElement, options) {
   }
 
   var filterKey = typeof options.filterKey === 'function' ? options.filterKey : noop;
-  var realPinch = typeof options.realPinch === 'boolean' ? options.realPinch : false
+  // TODO: likely need to unite pinchSpeed with zoomSpeed
+  var pinchSpeed = typeof options.pinchSpeed === 'number' ? options.pinchSpeed : 1;
   var bounds = options.bounds
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0
@@ -573,20 +574,9 @@ function createPanZoom(domElement, options) {
       var t2 = e.touches[1]
       var currentPinchLength = getPinchZoomLength(t1, t2)
 
-      var scaleMultiplier = 1
-
-      if (realPinch) {
-        scaleMultiplier = currentPinchLength / pinchZoomLength
-      } else {
-        var delta = 0
-        if (currentPinchLength < pinchZoomLength) {
-          delta = 1
-        } else if (currentPinchLength > pinchZoomLength) {
-          delta = -1
-        }
-
-        scaleMultiplier = getScaleMultiplier(delta)
-      }
+      // since the zoom speed is always based on distance from 1, we need to apply
+      // pinch speed only on that distance from 1:
+      var scaleMultiplier = 1 + (currentPinchLength / pinchZoomLength - 1) * pinchSpeed
 
       mouseX = (t1.clientX + t2.clientX)/2
       mouseY = (t1.clientY + t2.clientY)/2
@@ -619,8 +609,9 @@ function createPanZoom(domElement, options) {
   }
 
   function getPinchZoomLength(finger1, finger2) {
-    return Math.sqrt((finger1.clientX - finger2.clientX) * (finger1.clientX - finger2.clientX) +
-      (finger1.clientY - finger2.clientY) * (finger1.clientY - finger2.clientY))
+    var dx = finger1.clientX - finger2.clientX
+    var dy = finger1.clientY - finger2.clientY
+    return Math.sqrt(dx * dx + dy * dy)
   }
 
   function onDoubleClick(e) {

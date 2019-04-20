@@ -20,7 +20,7 @@ npm install panzoom --save
 Or download from CDN:
 
 ```
-<script src='https://unpkg.com/panzoom@7.1.2/dist/panzoom.min.js'></script>
+<script src='https://unpkg.com/panzoom@8.0.0/dist/panzoom.min.js'></script>
 ```
 
 If you download from CDN the library will be available under `panzoom` global name.
@@ -28,11 +28,11 @@ If you download from CDN the library will be available under `panzoom` global na
 ## Pan and zoom DOM subtree
 
 ``` JS
-// just grab any DOM element
-var area = document.querySelector('.zoomable')
+// just grab a DOM element
+var element = document.querySelector('#scene')
 
 // And pass it to panzoom
-panzoom(area)
+panzoom(element)
 ```
 
 ## SVG panzoom example
@@ -55,18 +55,18 @@ panzoom(area)
 // var panzoom = require('panzoom')
 
 // grab the DOM SVG element that you want to be draggable/zoomable:
-var scene = document.getElementById('scene')
+var element = document.getElementById('scene')
 
 // and forward it it to panzoom.
-panzoom(scene)
+panzoom(element)
 ```
 
-If your use case requires dynamic behavior (i.e. you want to make a scene not 
+If your use case requires dynamic behavior (i.e. you want to make a `element` not 
 draggable anymore, or even completely delete an SVG element) make sure to call
 `dispose()` method:
 
 ``` js
-var instance = panzoom(scene)
+var instance = panzoom(element)
 // do work
 // ...
 // then at some point you decide you don't need this anymore:
@@ -79,18 +79,18 @@ memory
 ## Events notification
 
 The library allows to subscribe to transformation changing events. E.g. when
-user starts/ends dragging the scene, the scene will fire `panstart`/`panend`
+user starts/ends dragging the `element`, the `element` will fire `panstart`/`panend`
 events. Here is example of all supported events:
 
 ``` js
-var instance = panzoom(scene);
+var instance = panzoom(element);
 instance.on('panstart', function(e) {
   console.log('Fired when pan is just started ', e);
   // Note: e === instance.
 });
 
 instance.on('pan', function(e) {
-  console.log('Fired when the scene is being panned', e);
+  console.log('Fired when the `element` is being panned', e);
 });
 
 instance.on('panend', function(e) {
@@ -98,7 +98,7 @@ instance.on('panend', function(e) {
 });
 
 instance.on('zoom', function(e) {
-  console.log('Fired when scene is zoomed', e);
+  console.log('Fired when `element` is zoomed', e);
 });
 
 instance.on('transform', function(e) {
@@ -116,7 +116,7 @@ can provide a custom filter, which will allow zooming only when modifier key is
 down. E.g.
 
 ``` js
-panzoom(document.getElementById('g4'), {
+panzoom(element, {
   beforeWheel: function(e) {
     // allow wheel-zoom only if altKey is down. Otherwise - ignore
     var shouldIgnore = !e.altKey;
@@ -137,7 +137,7 @@ pass the `filterKey()` predicate that returns truthy value to prevent panzoom's 
 behavior:
 
 ``` js
-panzoom(document.getElementById('g4'), {
+panzoom(element, {
   filterKey: function(/* e, dx, dy, dz */) {
     // don't let panzoom handle this event:
     return true;
@@ -150,17 +150,30 @@ panzoom(document.getElementById('g4'), {
 You can adjust how fast it zooms, by passing optional `zoomSpeed` argument:
 
 ``` js
-panzoom(document.getElementById('g4'), {
+panzoom(element, {
   zoomSpeed: 0.065 // 6.5% per mouse wheel event
 });
 ```
+
+## Pinch Speed
+
+On touch devices zoom is achieved by "pinching" and depends on distance between
+two fingers. We try to match the zoom speed with pinch, but if you find
+that too slow (or fast), you can adjust it:
+
+``` js
+panzoom(element, {
+  pinchSpeed: 2 // zoom two times faster than the distance between fingers
+});
+```
+
 
 ## Min Max Zoom
 
 You can set min and max zoom, by passing optional `minZoom` and `maxZoom` argument:
 
 ``` js
-panzoom(document.getElementById('g4'), {
+panzoom(element, {
   maxZoom: 1,
   minZoom: 0.1
 });
@@ -171,7 +184,7 @@ panzoom(document.getElementById('g4'), {
 You can disable smooth scroll, by passing optional `smoothScroll` argument:
 
 ``` js
-panzoom(document.getElementById('g4'), {
+panzoom(element, {
   smoothScroll: false
 });
 ```
@@ -183,7 +196,8 @@ With this setting the momentum is disabled.
 You can pause and resume the panzoom by calling the following methods:
 
 ``` js
-var controller = panzoom(document.getElementById('g4'));
+var element = document.getElementById('scene');
+var controller = panzoom(element);
 
 controller.isPaused(); //  returns false
 controller.pause();    //  Pauses event handling
@@ -202,7 +216,7 @@ If you want to quickly play with panzoom without using javascript, you can confi
 <!DOCTYPE html>
 <html>
 <head>
-  <script src='https://unpkg.com/panzoom@7.1.2/dist/panzoom.min.js'
+  <script src='https://unpkg.com/panzoom@8.0.0/dist/panzoom.min.js'
     query='#scene' name='pz'></script>
 </head>
 <body>
@@ -229,7 +243,7 @@ You can adjust the double click zoom multiplier, by passing optional `zoomDouble
 When double clicking, zoom is multiplied by `zoomDoubleClickSpeed`, which means that a value of 1 will disable double click zoom completely. 
 
 ``` js
-panzoom(document.getElementById('g4'), {
+panzoom(element, {
   zoomDoubleClickSpeed: 1, 
 });
 ```
@@ -239,7 +253,7 @@ panzoom(document.getElementById('g4'), {
 You can set the initial position and zoom, by chaining the `zoomAbs` function with x position, y position and zoom as arguments:
 
 ``` js
-panzoom(document.getElementById('g4'), {
+panzoom(element, {
   maxZoom: 1,
   minZoom: 0.1
 }).zoomAbs(
@@ -257,7 +271,7 @@ The library will handle `ontouch` events very aggressively, it will `preventDefa
 If you want to take care about this yourself, you can pass `onTouch` callback to the options object:
 
 ``` js
-panzoom(document.getElementById('g4'), {
+panzoom(element, {
   onTouch: function(e) {
     // `e` - is current touch event.
 
@@ -278,7 +292,7 @@ allow default action, you can pass `onDoubleClick()` callback to options. If thi
 returns false, then the library will not prevent default action:
 
 ``` js
-panzoom(document.getElementById('g4'), {
+panzoom(element, {
   onDoubleClick: function(e) {
     // `e` - is current double click event.
 

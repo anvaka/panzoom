@@ -581,7 +581,10 @@ function createPanZoom(domElement, options) {
       mouseX = (t1.clientX + t2.clientX)/2
       mouseY = (t1.clientY + t2.clientY)/2
 
-      publicZoomTo(mouseX, mouseY, scaleMultiplier)
+      var ownerRect = owner.getBoundingClientRect()
+      var offsetX = mouseX - ownerRect.left
+      var offsetY = mouseY - ownerRect.top
+      publicZoomTo(offsetX, offsetY, scaleMultiplier)
 
       pinchZoomLength = currentPinchLength
       e.stopPropagation()

@@ -114,12 +114,15 @@ function createPanZoom(domElement, options) {
     zoomTo: publicZoomTo,
     zoomAbs: zoomAbs,
     smoothZoom: smoothZoom,
-    getTransform: getTransformModel,
     showRectangle: showRectangle,
 
     pause: pause,
     resume: resume,
     isPaused: isPaused,
+
+    getTransform: getTransformModel,
+    getMinZoom: getMinZoom,
+    getMaxZoom: getMaxZoom
   }
 
   eventify(api);
@@ -213,6 +216,14 @@ function createPanZoom(domElement, options) {
   function getTransformModel() {
     // TODO: should this be read only?
     return transform
+  }
+
+  function getMinZoom() {
+    return minZoom;
+  }
+
+  function getMaxZoom() {
+    return maxZoom;
   }
 
   function getPoint() {

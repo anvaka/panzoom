@@ -48,6 +48,8 @@ declare module "panzoom" {
     on: <T>(eventName: string, handler: (e: T) => void) => void;
     off: (eventName: string, handler: Function) => void;
     fire: (eventName: string) => void;
+    getMinZoom: () => number;
+    getMaxZoom: () => number;
   }
 
   export default function createPanZoom(

@@ -173,10 +173,17 @@ panzoom(element, {
 You can set min and max zoom, by passing optional `minZoom` and `maxZoom` argument:
 
 ``` js
-panzoom(element, {
+var instance = panzoom(element, {
   maxZoom: 1,
   minZoom: 0.1
 });
+```
+
+You can later get the values using `getMinZoom()` and `getMaxZoom()`
+
+``` js
+assert(instance.getMaxZoom() === 1);
+assert(instance.getMinZoom() === 0.1);
 ```
 
 ## Disable Smooth Scroll

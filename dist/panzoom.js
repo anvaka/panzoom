@@ -57,6 +57,7 @@ function createPanZoom(domElement, options) {
   }
 
   var filterKey = typeof options.filterKey === 'function' ? options.filterKey : noop;
+  // TODO: likely need to unite pinchSpeed with zoomSpeed
   var pinchSpeed = typeof options.pinchSpeed === 'number' ? options.pinchSpeed : 1;
   var bounds = options.bounds
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY
@@ -813,11 +814,13 @@ function autoRun() {
   if (!scripts) return;
   var panzoomScript;
 
-  Array.from(scripts).forEach(function(x) {
+  for (var i = 0; i < scripts.length; ++i) {
+    var x = scripts[i];
     if (x.src && x.src.match(/\bpanzoom(\.min)?\.js/)) {
       panzoomScript = x
+      break;
     }
-  })
+  }
 
   if (!panzoomScript) return;
 
@@ -1568,7 +1571,7 @@ function removeWheelListener( elem, callback, useCapture ) {
   // unsubscription in some browsers. But in practice, I don't think we should
   // worry too much about it (those browsers are on the way out)
 function _addWheelListener( elem, eventName, callback, useCapture ) {
-  elem[ _addEventListener ]( prefix + eventName, support == "wheel" ? callback : function( originalEvent ) {
+  elem[ _addEventListener ]( prefix + eventName, support == "wheel" ? callback : function(originalEvent ) {
     !originalEvent && ( originalEvent = window.event );
 
     // create a normalized event object
@@ -1610,7 +1613,10 @@ function _addWheelListener( elem, eventName, callback, useCapture ) {
     // it's time to fire the callback
     return callback( event );
 
-  }, useCapture || false );
+  }, {
+    capture: useCapture || false ,
+    passive: false
+  });
 }
 
 function _removeWheelListener( elem, eventName, callback, useCapture ) {

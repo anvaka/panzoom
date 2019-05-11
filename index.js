@@ -813,11 +813,13 @@ function autoRun() {
   if (!scripts) return;
   var panzoomScript;
 
-  Array.from(scripts).forEach(function(x) {
+  for (var i = 0; i < scripts.length; ++i) {
+    var x = scripts[i];
     if (x.src && x.src.match(/\bpanzoom(\.min)?\.js/)) {
       panzoomScript = x
+      break;
     }
-  })
+  }
 
   if (!panzoomScript) return;
 

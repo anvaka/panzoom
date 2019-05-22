@@ -115,12 +115,15 @@ function createPanZoom(domElement, options) {
     zoomTo: publicZoomTo,
     zoomAbs: zoomAbs,
     smoothZoom: smoothZoom,
-    getTransform: getTransformModel,
     showRectangle: showRectangle,
 
     pause: pause,
     resume: resume,
     isPaused: isPaused,
+
+    getTransform: getTransformModel,
+    getMinZoom: getMinZoom,
+    getMaxZoom: getMaxZoom
   }
 
   eventify(api);
@@ -214,6 +217,14 @@ function createPanZoom(domElement, options) {
   function getTransformModel() {
     // TODO: should this be read only?
     return transform
+  }
+
+  function getMinZoom() {
+    return minZoom;
+  }
+
+  function getMaxZoom() {
+    return maxZoom;
   }
 
   function getPoint() {
@@ -723,7 +734,8 @@ function createPanZoom(domElement, options) {
       zoomToAnimation = animate(from, to, {
         step: function(v) {
           zoomAbs(clientX, clientY, v.scale)
-        }
+        },
+        done: triggerZoomEnd
       })
   }
 
@@ -765,6 +777,10 @@ function createPanZoom(domElement, options) {
       if (!multiTouch) smoothScroll.stop()
       triggerEvent('panend')
     }
+  }
+
+  function triggerZoomEnd() {
+    triggerEvent('zoomend');
   }
 
   function triggerEvent(name) {
@@ -1571,7 +1587,7 @@ function removeWheelListener( elem, callback, useCapture ) {
   // unsubscription in some browsers. But in practice, I don't think we should
   // worry too much about it (those browsers are on the way out)
 function _addWheelListener( elem, eventName, callback, useCapture ) {
-  elem[ _addEventListener ]( prefix + eventName, support == "wheel" ? callback : function(originalEvent ) {
+  elem[ _addEventListener ]( prefix + eventName, support == "wheel" ? callback : function( originalEvent ) {
     !originalEvent && ( originalEvent = window.event );
 
     // create a normalized event object
@@ -1613,10 +1629,7 @@ function _addWheelListener( elem, eventName, callback, useCapture ) {
     // it's time to fire the callback
     return callback( event );
 
-  }, {
-    capture: useCapture || false ,
-    passive: false
-  });
+  }, useCapture || false );
 }
 
 function _removeWheelListener( elem, eventName, callback, useCapture ) {

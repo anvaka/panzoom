@@ -356,7 +356,8 @@ function createPanZoom(domElement, options) {
     transform.x = size.x - ratio * (size.x - transform.x)
     transform.y = size.y - ratio * (size.y - transform.y)
 
-    if (bounds && boundsPadding == 1 && minZoom == 1) {
+    // TODO: https://github.com/anvaka/panzoom/issues/112
+    if (bounds && boundsPadding === 1 && minZoom == 1) {
       transform.scale *= ratio
       keepTransformInsideBounds()
     } else {

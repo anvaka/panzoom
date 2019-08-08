@@ -660,9 +660,10 @@ function createPanZoom(domElement, options) {
     // window, and we will loose it
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup', onMouseUp)
-
-    preventTextSelection.capture(e.target || e.srcElement)
-
+    
+    if (!options.disableTextSelectionPrevention) {
+      preventTextSelection.capture(e.target || e.srcElement)
+    }
     return false
   }
 
@@ -684,7 +685,9 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseUp() {
-    preventTextSelection.release()
+    if (!options.disableTextSelectionPrevention) {
+      preventTextSelection.release()
+    }
     triggerPanEnd()
     releaseDocumentMouse()
   }

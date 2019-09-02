@@ -114,6 +114,7 @@ function createPanZoom(domElement, options) {
     zoomTo: publicZoomTo,
     zoomAbs: zoomAbs,
     smoothZoom: smoothZoom,
+    smoothZoomToAbs: smoothZoomToAbs,
     showRectangle: showRectangle,
 
     pause: pause,
@@ -732,6 +733,21 @@ function createPanZoom(domElement, options) {
       var fromValue = transform.scale
       var from = {scale: fromValue}
       var to = {scale: scaleMultiplier * fromValue}
+
+      smoothScroll.cancel()
+      cancelZoomAnimation()
+
+      zoomToAnimation = animate(from, to, {
+        step: function(v) {
+          zoomAbs(clientX, clientY, v.scale)
+        }
+      })
+  }
+
+  function smoothZoomToAbs(clientX, clientY, toScaleValue) {
+      var fromValue = transform.scale
+      var from = {scale: fromValue}
+      var to = {scale: toScaleValue}
 
       smoothScroll.cancel()
       cancelZoomAnimation()

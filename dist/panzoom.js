@@ -741,7 +741,8 @@ function createPanZoom(domElement, options) {
       zoomToAnimation = animate(from, to, {
         step: function(v) {
           zoomAbs(clientX, clientY, v.scale)
-        }
+        },
+        done: triggerZoomEnd
       })
   }
 
@@ -798,6 +799,10 @@ function createPanZoom(domElement, options) {
       if (!multiTouch) smoothScroll.stop()
       triggerEvent('panend')
     }
+  }
+
+  function triggerZoomEnd() {
+    triggerEvent('zoomend');
   }
 
   function triggerEvent(name) {

@@ -101,6 +101,10 @@ instance.on('zoom', function(e) {
   console.log('Fired when `element` is zoomed', e);
 });
 
+instance.on('zoomend', function(e) {
+  console.log('Fired when zoom animation ended', e);
+});
+
 instance.on('transform', function(e) {
   // This event will be called along with events above.
   console.log('Fired when any transformation has happened', e);

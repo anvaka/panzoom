@@ -36,7 +36,7 @@ declare module "panzoom" {
       clientY: number,
       scaleMultiplier: number
     ) => void;
-    smoothZoomToAbs: (
+    smoothZoomAbs: (
       clientX: number,
       clientY: number,
       toScaleValue: number

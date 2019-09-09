@@ -22,7 +22,7 @@ declare module "panzoom" {
     onDoubleClick?: (e: Event) => void;
     smoothScroll?: boolean;
     controller?: SVGElement | HTMLElement;
-    disableTextSelectionPrevention?: boolean;
+    enableTextSelection?: boolean;
   }
 
   export interface PanZoom {

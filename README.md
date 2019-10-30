@@ -325,6 +325,14 @@ panzoom(element, {
 });
 ```
 
+## Triggering Pan 
+
+To Pan the object using Javascript use `moveTo(<number>,<number>)` function . It expects x, y value to where  to move.
+
+``` js
+panzoom.moveTo(0, 0);
+```
+
 # license
 
 MIT

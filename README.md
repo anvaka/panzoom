@@ -312,6 +312,19 @@ panzoom(element, {
 });
 ```
 
+## Bounds on Panzoom
+
+By default panzoom will not prevent Image from Panning out of the Container. `bounds` (boolean) and 
+`boundsPadding` (number)  can be defined so that it doesn't fall out. Default value for `boundsPadding` is `0.05` .
+ 
+
+``` js
+panzoom(element, {
+  bounds: true,
+  boundsPadding: 0.1
+});
+```
+
 # license
 
 MIT

@@ -133,6 +133,21 @@ See [JSFiddle](https://jsfiddle.net/Laxq9jLu/) for the demo. The tiger will be
 zoomable only when `Alt` key is down.
 
 
+## Ignore mouse down
+
+If you want to disable panning or filter it by pressing a specific key, use the
+`beforeMouseDown()` option. E.g.
+
+``` js
+panzoom(element, {
+  beforeMouseDown: function(e) {
+    // allow mouse-down panning only if altKey is down. Otherwise - ignore
+    var shouldIgnore = !e.altKey;
+    return shouldIgnore;
+  }
+});
+```
+
 ## Ignore keyboard events
 
 By default, panzoom will listen to keyboard events, so that users can navigate the scene

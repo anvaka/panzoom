@@ -116,6 +116,7 @@ function createPanZoom(domElement, options) {
     smoothZoom: smoothZoom,
     smoothZoomAbs: smoothZoomAbs,
     showRectangle: showRectangle,
+    zoomToFit: zoomToFit,
 
     pause: pause,
     resume: resume,
@@ -391,26 +392,50 @@ function createPanZoom(domElement, options) {
     internalMoveBy(dx, dy, true)
   }
 
-  function internalMoveBy(dx, dy, smooth) {
+  function zoomToFit(ui) {
+    var parent = ui.ownerSVGElement
+    if (!parent) throw new Error('ui element is required to be within the scene')
+
+    // TODO: should i use controller's screen CTM?
+    var clientRect = ui.getBoundingClientRect()
+    var cx = clientRect.left + clientRect.width/2
+    var cy = clientRect.top + clientRect.height/2
+
+    var container = parent.getBoundingClientRect()
+    var dx = container.width/2 - cx
+    var dy = container.height/2 - cy
+
+    var wx = window.innerWidth / 2;
+    var wy = window.innerHeight / 2;
+
+    var fitRatio = Math.min(wx / (clientRect.width / 2), wy / (clientRect.height / 2));
+
+    internalMoveBy(dx, dy, true, () => {smoothZoom(wx , wy, fitRatio)});
+    
+  }
+
+  function internalMoveBy(dx, dy, smooth, done) {
     if (!smooth) {
-      return moveBy(dx, dy)
+      moveBy(dx, dy);
+      done();
+    } else {
+      if (moveByAnimation) moveByAnimation.cancel()
+
+      var from = { x: 0, y: 0 }
+      var to = { x: dx, y : dy }
+      var lastX = 0
+      var lastY = 0
+
+      moveByAnimation = animate(from, to, {
+        step: function(v) {
+          moveBy(v.x - lastX, v.y - lastY)
+
+          lastX = v.x
+          lastY = v.y
+        },
+        done: done
+      })
     }
-
-    if (moveByAnimation) moveByAnimation.cancel()
-
-    var from = { x: 0, y: 0 }
-    var to = { x: dx, y : dy }
-    var lastX = 0
-    var lastY = 0
-
-    moveByAnimation = animate(from, to, {
-      step: function(v) {
-        moveBy(v.x - lastX, v.y - lastY)
-
-        lastX = v.x
-        lastY = v.y
-      }
-    })
   }
 
   function scroll(x, y) {

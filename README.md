@@ -171,6 +171,36 @@ panzoom(element, {
 });
 ```
 
+## Fixed transform origin when zooming
+
+By default when you use mouse wheel or pinch to zoom, `panzoom` uses mouse
+coordinates to determine the central point of the zooming operation.
+
+If you want to override this behavior and always zoom into `center` of the
+screen pass `transformOrigin` to the options:
+
+``` js
+panzoom(element, {
+  // now all zoom operations will happen based on the center of the screen
+  transformOrigin: {x: 0.5, y: 0.5}
+});
+```
+
+You specify `transformOrigin` as a pair of `{x, y}` coordinates. Here are some examples:
+
+``` js
+// some of the possible values:
+let topLeft = {x: 0, y: 0};
+let topRight = {x: 1, y: 0};
+let bottomLeft = {x: 0, y: 1};
+let bottomRight = {x: 1, y: 1};
+let centerCenter = {x: 0.5, y: 0.5};
+
+// now let's use it:
+panZoom(element, {
+  transformOrigin: centerCenter
+});
+```
 
 ## Min Max Zoom
 

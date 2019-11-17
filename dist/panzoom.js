@@ -125,7 +125,10 @@ function createPanZoom(domElement, options) {
 
     getTransform: getTransformModel,
     getMinZoom: getMinZoom,
-    getMaxZoom: getMaxZoom
+    getMaxZoom: getMaxZoom,
+
+    getTransformOrigin: getTransformOrigin,
+    setTransformOrigin: setTransformOrigin
   }
 
   eventify(api);
@@ -227,6 +230,14 @@ function createPanZoom(domElement, options) {
 
   function getMaxZoom() {
     return maxZoom;
+  }
+
+  function getTransformOrigin() {
+    return transformOrigin;
+  }
+
+  function setTransformOrigin(newTransformOrigin) {
+    transformOrigin = parseTransformOrigin(newTransformOrigin);
   }
 
   function getPoint() {

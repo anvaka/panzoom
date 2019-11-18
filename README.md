@@ -202,6 +202,20 @@ panZoom(element, {
 });
 ```
 
+To get or set new transform origin use the following API:
+
+``` js
+let instance = panzoom(element, {
+  // now all zoom operations will happen based on the center of the screen
+  transformOrigin: {x: 0.5, y: 0.5}
+});
+
+let origin = instance.getTransformOrigin(); // {x: 0.5, y: 0.5}
+
+instance.setTransformOrigin({x: 0, y: 0}); // now it is topLeft
+instance.setTransformOrigin(null); // remove transform origin
+```
+
 ## Min Max Zoom
 
 You can set min and max zoom, by passing optional `minZoom` and `maxZoom` argument:

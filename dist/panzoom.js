@@ -67,6 +67,7 @@ function createPanZoom(domElement, options) {
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
   var beforeWheel = options.beforeWheel || noop
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
+  var transformOrigin = parseTransformOrigin(options.transformOrigin);
 
   validateBounds(bounds)
 
@@ -115,12 +116,19 @@ function createPanZoom(domElement, options) {
     zoomTo: publicZoomTo,
     zoomAbs: zoomAbs,
     smoothZoom: smoothZoom,
-    getTransform: getTransformModel,
+    smoothZoomAbs: smoothZoomAbs,
     showRectangle: showRectangle,
 
     pause: pause,
     resume: resume,
     isPaused: isPaused,
+
+    getTransform: getTransformModel,
+    getMinZoom: getMinZoom,
+    getMaxZoom: getMaxZoom,
+
+    getTransformOrigin: getTransformOrigin,
+    setTransformOrigin: setTransformOrigin
   }
 
   eventify(api);
@@ -214,6 +222,22 @@ function createPanZoom(domElement, options) {
   function getTransformModel() {
     // TODO: should this be read only?
     return transform
+  }
+
+  function getMinZoom() {
+    return minZoom;
+  }
+
+  function getMaxZoom() {
+    return maxZoom;
+  }
+
+  function getTransformOrigin() {
+    return transformOrigin;
+  }
+
+  function setTransformOrigin(newTransformOrigin) {
+    transformOrigin = parseTransformOrigin(newTransformOrigin);
   }
 
   function getPoint() {
@@ -345,8 +369,14 @@ function createPanZoom(domElement, options) {
     transform.x = size.x - ratio * (size.x - transform.x)
     transform.y = size.y - ratio * (size.y - transform.y)
 
-    var transformAdjusted = keepTransformInsideBounds()
-    if (!transformAdjusted) transform.scale *= ratio
+    // TODO: https://github.com/anvaka/panzoom/issues/112
+    if (bounds && boundsPadding === 1 && minZoom === 1) {
+      transform.scale *= ratio
+      keepTransformInsideBounds()
+    } else {
+      var transformAdjusted = keepTransformInsideBounds()
+      if (!transformAdjusted) transform.scale *= ratio
+    }
 
     triggerEvent('zoom')
 
@@ -491,8 +521,16 @@ function createPanZoom(domElement, options) {
 
     if (z) {
       var scaleMultiplier = getScaleMultiplier(z)
-      var ownerRect = owner.getBoundingClientRect()
-      publicZoomTo(ownerRect.width/2, ownerRect.height/2, scaleMultiplier)
+      var offset = transformOrigin ? getTransformOriginOffset() : midPoint();
+      publicZoomTo(offset.x, offset.y, scaleMultiplier)
+    }
+  }
+
+  function midPoint() {
+    var ownerRect = owner.getBoundingClientRect();
+    return {
+      x: ownerRect.width / 2,
+      y: ownerRect.height / 2
     }
   }
 
@@ -581,6 +619,11 @@ function createPanZoom(domElement, options) {
 
       mouseX = (t1.clientX + t2.clientX)/2
       mouseY = (t1.clientY + t2.clientY)/2
+      if (transformOrigin) {
+        var offset = getTransformOriginOffset();
+        mouseX = offset.x;
+        mouseY = offset.y;
+      }
 
       publicZoomTo(mouseX, mouseY, scaleMultiplier)
 
@@ -598,7 +641,12 @@ function createPanZoom(domElement, options) {
     } else {
       var now = new Date()
       if (now - lastTouchEndTime < doubleTapSpeedInMS) {
-        smoothZoom(mouseX, mouseY, zoomDoubleClickSpeed)
+        if (transformOrigin) {
+          var offset = getTransformOriginOffset();
+          smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
+        } else {
+          smoothZoom(mouseX, mouseY, zoomDoubleClickSpeed)
+        }
       }
 
       lastTouchEndTime = now
@@ -618,6 +666,11 @@ function createPanZoom(domElement, options) {
   function onDoubleClick(e) {
     beforeDoubleClick(e);
     var offset = getOffsetXY(e)
+    if (transformOrigin) {
+      // TODO: looks like this is duplicated in the file.
+      // Need to refactor
+      offset = getTransformOriginOffset();
+    }
     smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
   }
 
@@ -644,9 +697,10 @@ function createPanZoom(domElement, options) {
     // window, and we will loose it
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup', onMouseUp)
-
-    preventTextSelection.capture(e.target || e.srcElement)
-
+    
+    if (!options.enableTextSelection) {
+      preventTextSelection.capture(e.target || e.srcElement)
+    }
     return false
   }
 
@@ -668,7 +722,9 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseUp() {
-    preventTextSelection.release()
+    if (!options.enableTextSelection) {
+      preventTextSelection.release()
+    }
     triggerPanEnd()
     releaseDocumentMouse()
   }
@@ -696,7 +752,7 @@ function createPanZoom(domElement, options) {
     var scaleMultiplier = getScaleMultiplier(e.deltaY)
 
     if (scaleMultiplier !== 1) {
-      var offset = getOffsetXY(e)
+      var offset = transformOrigin ? getTransformOriginOffset() : getOffsetXY(e)
       publicZoomTo(offset.x, offset.y, scaleMultiplier)
       e.preventDefault()
     }
@@ -723,8 +779,32 @@ function createPanZoom(domElement, options) {
       zoomToAnimation = animate(from, to, {
         step: function(v) {
           zoomAbs(clientX, clientY, v.scale)
+        },
+        done: triggerZoomEnd
+      })
+  }
+
+  function smoothZoomAbs(clientX, clientY, toScaleValue) {
+      var fromValue = transform.scale
+      var from = {scale: fromValue}
+      var to = {scale: toScaleValue}
+
+      smoothScroll.cancel()
+      cancelZoomAnimation()
+
+      zoomToAnimation = animate(from, to, {
+        step: function(v) {
+          zoomAbs(clientX, clientY, v.scale)
         }
       })
+  }
+
+  function getTransformOriginOffset() {
+    var ownerRect = owner.getBoundingClientRect();
+    return {
+      x: ownerRect.width * transformOrigin.x,
+      y: ownerRect.height * transformOrigin.y
+    };
   }
 
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
@@ -767,9 +847,33 @@ function createPanZoom(domElement, options) {
     }
   }
 
+  function triggerZoomEnd() {
+    triggerEvent('zoomend');
+  }
+
   function triggerEvent(name) {
     api.fire(name, api);
   }
+}
+
+function parseTransformOrigin(options) {
+  if (!options) return;
+  if (typeof options === 'object') {
+    if (!isNumber(options.x) || !isNumber(options.y)) failTransformOrigin(options);
+    return options;
+  }
+
+  failTransformOrigin();
+}
+
+function failTransformOrigin(options) {
+  console.error(options)
+  throw new Error(['Cannot parse transform origin.',
+      'Some good examples:',
+      '  "center center" can be achieved with {x: 0.5, y: 0.5}',
+      '  "top center" can be achieved with {x: 0.5, y: 0}',
+      '  "bottom right" can be achieved with {x: 1, y: 1}',
+  ].join('\n'));
 }
 
 function noop() { }
@@ -1571,7 +1675,7 @@ function removeWheelListener( elem, callback, useCapture ) {
   // unsubscription in some browsers. But in practice, I don't think we should
   // worry too much about it (those browsers are on the way out)
 function _addWheelListener( elem, eventName, callback, useCapture ) {
-  elem[ _addEventListener ]( prefix + eventName, support == "wheel" ? callback : function(originalEvent ) {
+  elem[ _addEventListener ]( prefix + eventName, support == "wheel" ? callback : function( originalEvent ) {
     !originalEvent && ( originalEvent = window.event );
 
     // create a normalized event object
@@ -1613,10 +1717,7 @@ function _addWheelListener( elem, eventName, callback, useCapture ) {
     // it's time to fire the callback
     return callback( event );
 
-  }, {
-    capture: useCapture || false ,
-    passive: false
-  });
+  }, useCapture || false );
 }
 
 function _removeWheelListener( elem, eventName, callback, useCapture ) {

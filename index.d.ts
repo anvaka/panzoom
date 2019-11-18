@@ -6,6 +6,11 @@ declare module "panzoom" {
     bottom: number;
   }
 
+  export interface TransformOrigin {
+    x: number;
+    y: number;
+  }
+
   export interface PanZoomOptions {
     filterKey?: () => boolean;
     bounds?: boolean | Bounds;
@@ -15,13 +20,15 @@ declare module "panzoom" {
     boundsPadding?: number;
     zoomDoubleClickSpeed?: number;
     zoomSpeed?: number;
-    pinchSpeed?: boolean;
+    pinchSpeed?: number;
     beforeWheel?: (e: WheelEvent) => void;
     autocenter?: boolean;
     onTouch?: (e: TouchEvent) => void;
     onDoubleClick?: (e: Event) => void;
     smoothScroll?: boolean;
     controller?: SVGElement | HTMLElement;
+    enableTextSelection?: boolean;
+    transformOrigin?: TransformOrigin;
   }
 
   export interface PanZoom {
@@ -36,6 +43,11 @@ declare module "panzoom" {
       clientY: number,
       scaleMultiplier: number
     ) => void;
+    smoothZoomAbs: (
+      clientX: number,
+      clientY: number,
+      toScaleValue: number
+    ) => void;
     getTransform: () => {
       x: number;
       y: number;
@@ -48,6 +60,10 @@ declare module "panzoom" {
     on: <T>(eventName: string, handler: (e: T) => void) => void;
     off: (eventName: string, handler: Function) => void;
     fire: (eventName: string) => void;
+    getMinZoom: () => number;
+    getMaxZoom: () => number;
+    getTransformOrigin: () => TransformOrigin;
+    setTransformOrigin: (newTransformOrigin: TransformOrigin) => void;
   }
 
   export default function createPanZoom(

@@ -20,7 +20,7 @@ npm install panzoom --save
 Or download from CDN:
 
 ```
-<script src='https://unpkg.com/panzoom@8.0.0/dist/panzoom.min.js'></script>
+<script src='https://unpkg.com/panzoom@8.4.0/dist/panzoom.min.js'></script>
 ```
 
 If you download from CDN the library will be available under `panzoom` global name.
@@ -101,6 +101,10 @@ instance.on('zoom', function(e) {
   console.log('Fired when `element` is zoomed', e);
 });
 
+instance.on('zoomend', function(e) {
+  console.log('Fired when zoom animation ended', e);
+});
+
 instance.on('transform', function(e) {
   // This event will be called along with events above.
   console.log('Fired when any transformation has happened', e);
@@ -167,16 +171,53 @@ panzoom(element, {
 });
 ```
 
+## Fixed transform origin when zooming
+
+By default when you use mouse wheel or pinch to zoom, `panzoom` uses mouse
+coordinates to determine the central point of the zooming operation.
+
+If you want to override this behavior and always zoom into `center` of the
+screen pass `transformOrigin` to the options:
+
+``` js
+panzoom(element, {
+  // now all zoom operations will happen based on the center of the screen
+  transformOrigin: {x: 0.5, y: 0.5}
+});
+```
+
+You specify `transformOrigin` as a pair of `{x, y}` coordinates. Here are some examples:
+
+``` js
+// some of the possible values:
+let topLeft = {x: 0, y: 0};
+let topRight = {x: 1, y: 0};
+let bottomLeft = {x: 0, y: 1};
+let bottomRight = {x: 1, y: 1};
+let centerCenter = {x: 0.5, y: 0.5};
+
+// now let's use it:
+panZoom(element, {
+  transformOrigin: centerCenter
+});
+```
 
 ## Min Max Zoom
 
 You can set min and max zoom, by passing optional `minZoom` and `maxZoom` argument:
 
 ``` js
-panzoom(element, {
+var instance = panzoom(element, {
   maxZoom: 1,
   minZoom: 0.1
 });
+```
+
+You can later get the values using `getMinZoom()` and `getMaxZoom()`
+
+``` js
+assert(instance.getMaxZoom() === 1);
+assert(instance.getMinZoom() === 0.1);
 ```
 
 ## Disable Smooth Scroll
@@ -216,7 +257,7 @@ If you want to quickly play with panzoom without using javascript, you can confi
 <!DOCTYPE html>
 <html>
 <head>
-  <script src='https://unpkg.com/panzoom@8.0.0/dist/panzoom.min.js'
+  <script src='https://unpkg.com/panzoom@8.4.0/dist/panzoom.min.js'
     query='#scene' name='pz'></script>
 </head>
 <body>
@@ -299,6 +340,27 @@ panzoom(element, {
     return false; // tells the library to not preventDefault, and not stop propagation
   }
 });
+```
+
+## Bounds on Panzoom
+
+By default panzoom will not prevent Image from Panning out of the Container. `bounds` (boolean) and 
+`boundsPadding` (number)  can be defined so that it doesn't fall out. Default value for `boundsPadding` is `0.05` .
+ 
+
+``` js
+panzoom(element, {
+  bounds: true,
+  boundsPadding: 0.1
+});
+```
+
+## Triggering Pan 
+
+To Pan the object using Javascript use `moveTo(<number>,<number>)` function . It expects x, y value to where  to move.
+
+``` js
+panzoom.moveTo(0, 0);
 ```
 
 # license

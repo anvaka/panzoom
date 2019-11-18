@@ -19,6 +19,21 @@ test('it can be created', (t) => {
   t.end();
 });
 
+test('can get min/max zoom', (t) => {
+  // Note - have to do it after globals initialized.
+  var dom = new JSDOM(`<body><div class='content'></div></body>`);
+  const document = dom.window.document;
+  var content = document.querySelector('.content');
+
+  var panzoom = createPanzoom(content, {
+    minZoom: 1,
+    maxZoom: 2
+  });
+  t.equals(panzoom.getMinZoom(), 1, 'min zoom is valid');
+  t.equals(panzoom.getMaxZoom(), 2, 'max zoom is valid');
+  t.end();
+});
+
 test('it updates transformation matrix on wheel event', t => {
   var dom = new JSDOM(`<body><div class='content'></div></body>`);
   const document = dom.window.document;

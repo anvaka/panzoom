@@ -68,6 +68,7 @@ function createPanZoom(domElement, options) {
   var beforeWheel = options.beforeWheel || noop
   var beforeMouseDown = options.beforeMouseDown || noop
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
+  var transformOrigin = parseTransformOrigin(options.transformOrigin);
 
   validateBounds(bounds)
 
@@ -125,7 +126,10 @@ function createPanZoom(domElement, options) {
 
     getTransform: getTransformModel,
     getMinZoom: getMinZoom,
-    getMaxZoom: getMaxZoom
+    getMaxZoom: getMaxZoom,
+
+    getTransformOrigin: getTransformOrigin,
+    setTransformOrigin: setTransformOrigin
   }
 
   eventify(api);
@@ -227,6 +231,14 @@ function createPanZoom(domElement, options) {
 
   function getMaxZoom() {
     return maxZoom;
+  }
+
+  function getTransformOrigin() {
+    return transformOrigin;
+  }
+
+  function setTransformOrigin(newTransformOrigin) {
+    transformOrigin = parseTransformOrigin(newTransformOrigin);
   }
 
   function getPoint() {
@@ -510,8 +522,16 @@ function createPanZoom(domElement, options) {
 
     if (z) {
       var scaleMultiplier = getScaleMultiplier(z)
-      var ownerRect = owner.getBoundingClientRect()
-      publicZoomTo(ownerRect.width/2, ownerRect.height/2, scaleMultiplier)
+      var offset = transformOrigin ? getTransformOriginOffset() : midPoint();
+      publicZoomTo(offset.x, offset.y, scaleMultiplier)
+    }
+  }
+
+  function midPoint() {
+    var ownerRect = owner.getBoundingClientRect();
+    return {
+      x: ownerRect.width / 2,
+      y: ownerRect.height / 2
     }
   }
 
@@ -600,6 +620,11 @@ function createPanZoom(domElement, options) {
 
       mouseX = (t1.clientX + t2.clientX)/2
       mouseY = (t1.clientY + t2.clientY)/2
+      if (transformOrigin) {
+        var offset = getTransformOriginOffset();
+        mouseX = offset.x;
+        mouseY = offset.y;
+      }
 
       publicZoomTo(mouseX, mouseY, scaleMultiplier)
 
@@ -617,7 +642,12 @@ function createPanZoom(domElement, options) {
     } else {
       var now = new Date()
       if (now - lastTouchEndTime < doubleTapSpeedInMS) {
-        smoothZoom(mouseX, mouseY, zoomDoubleClickSpeed)
+        if (transformOrigin) {
+          var offset = getTransformOriginOffset();
+          smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
+        } else {
+          smoothZoom(mouseX, mouseY, zoomDoubleClickSpeed)
+        }
       }
 
       lastTouchEndTime = now
@@ -637,6 +667,11 @@ function createPanZoom(domElement, options) {
   function onDoubleClick(e) {
     beforeDoubleClick(e);
     var offset = getOffsetXY(e)
+    if (transformOrigin) {
+      // TODO: looks like this is duplicated in the file.
+      // Need to refactor
+      offset = getTransformOriginOffset();
+    }
     smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed)
   }
 
@@ -721,7 +756,7 @@ function createPanZoom(domElement, options) {
     var scaleMultiplier = getScaleMultiplier(e.deltaY)
 
     if (scaleMultiplier !== 1) {
-      var offset = getOffsetXY(e)
+      var offset = transformOrigin ? getTransformOriginOffset() : getOffsetXY(e)
       publicZoomTo(offset.x, offset.y, scaleMultiplier)
       e.preventDefault()
     }
@@ -766,6 +801,14 @@ function createPanZoom(domElement, options) {
           zoomAbs(clientX, clientY, v.scale)
         }
       })
+  }
+
+  function getTransformOriginOffset() {
+    var ownerRect = owner.getBoundingClientRect();
+    return {
+      x: ownerRect.width * transformOrigin.x,
+      y: ownerRect.height * transformOrigin.y
+    };
   }
 
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
@@ -815,6 +858,26 @@ function createPanZoom(domElement, options) {
   function triggerEvent(name) {
     api.fire(name, api);
   }
+}
+
+function parseTransformOrigin(options) {
+  if (!options) return;
+  if (typeof options === 'object') {
+    if (!isNumber(options.x) || !isNumber(options.y)) failTransformOrigin(options);
+    return options;
+  }
+
+  failTransformOrigin();
+}
+
+function failTransformOrigin(options) {
+  console.error(options)
+  throw new Error(['Cannot parse transform origin.',
+      'Some good examples:',
+      '  "center center" can be achieved with {x: 0.5, y: 0.5}',
+      '  "top center" can be achieved with {x: 0.5, y: 0}',
+      '  "bottom right" can be achieved with {x: 1, y: 1}',
+  ].join('\n'));
 }
 
 function noop() { }
@@ -1567,10 +1630,8 @@ function validateSubject(subject) {
 
 },{}],10:[function(require,module,exports){
 /**
- * This module unifies handling of mouse whee event across different browsers
- *
- * See https://developer.mozilla.org/en-US/docs/Web/Reference/Events/wheel?redirectlocale=en-US&redirectslug=DOM%2FMozilla_event_reference%2Fwheel
- * for more details
+ * This module used to unify mouse wheel behavior between different browsers in 2014
+ * Now it's just a wrapper around addEventListener('wheel');
  *
  * Usage:
  *  var addWheelListener = require('wheel').addWheelListener;
@@ -1580,7 +1641,6 @@ function validateSubject(subject) {
  *  });
  *  removeWheelListener(domElement, function);
  */
-// by default we shortcut to 'addEventListener':
 
 module.exports = addWheelListener;
 
@@ -1589,101 +1649,12 @@ module.exports.addWheelListener = addWheelListener;
 module.exports.removeWheelListener = removeWheelListener;
 
 
-var prefix = "", _addEventListener, _removeEventListener,  support;
-
-detectEventModel(typeof window !== 'undefined' && window,
-                typeof document !== 'undefined' && document);
-
-function addWheelListener( elem, callback, useCapture ) {
-    _addWheelListener( elem, support, callback, useCapture );
-
-    // handle MozMousePixelScroll in older Firefox
-    if( support == "DOMMouseScroll" ) {
-        _addWheelListener( elem, "MozMousePixelScroll", callback, useCapture );
-    }
+function addWheelListener(element, listener, useCapture) {
+  element.addEventListener('wheel', listener, useCapture);
 }
 
-function removeWheelListener( elem, callback, useCapture ) {
-    _removeWheelListener( elem, support, callback, useCapture );
-
-    // handle MozMousePixelScroll in older Firefox
-    if( support == "DOMMouseScroll" ) {
-        _removeWheelListener( elem, "MozMousePixelScroll", callback, useCapture );
-    }
+function removeWheelListener( element, listener, useCapture ) {
+  element.removeEventListener('wheel', listener, useCapture);
 }
-
-  // TODO: in theory this anonymous function may result in incorrect
-  // unsubscription in some browsers. But in practice, I don't think we should
-  // worry too much about it (those browsers are on the way out)
-function _addWheelListener( elem, eventName, callback, useCapture ) {
-  elem[ _addEventListener ]( prefix + eventName, support == "wheel" ? callback : function( originalEvent ) {
-    !originalEvent && ( originalEvent = window.event );
-
-    // create a normalized event object
-    var event = {
-      // keep a ref to the original event object
-      originalEvent: originalEvent,
-      target: originalEvent.target || originalEvent.srcElement,
-      type: "wheel",
-      deltaMode: originalEvent.type == "MozMousePixelScroll" ? 0 : 1,
-      deltaX: 0,
-      deltaY: 0,
-      deltaZ: 0,
-      clientX: originalEvent.clientX,
-      clientY: originalEvent.clientY,
-      preventDefault: function() {
-        originalEvent.preventDefault ?
-            originalEvent.preventDefault() :
-            originalEvent.returnValue = false;
-      },
-      stopPropagation: function() {
-        if(originalEvent.stopPropagation)
-          originalEvent.stopPropagation();
-      },
-      stopImmediatePropagation: function() {
-        if(originalEvent.stopImmediatePropagation)
-          originalEvent.stopImmediatePropagation();
-      }
-    };
-
-    // calculate deltaY (and deltaX) according to the event
-    if ( support == "mousewheel" ) {
-      event.deltaY = - 1/40 * originalEvent.wheelDelta;
-      // Webkit also support wheelDeltaX
-      originalEvent.wheelDeltaX && ( event.deltaX = - 1/40 * originalEvent.wheelDeltaX );
-    } else {
-      event.deltaY = originalEvent.detail;
-    }
-
-    // it's time to fire the callback
-    return callback( event );
-
-  }, useCapture || false );
-}
-
-function _removeWheelListener( elem, eventName, callback, useCapture ) {
-  elem[ _removeEventListener ]( prefix + eventName, callback, useCapture || false );
-}
-
-function detectEventModel(window, document) {
-  if ( window && window.addEventListener ) {
-      _addEventListener = "addEventListener";
-      _removeEventListener = "removeEventListener";
-  } else {
-      _addEventListener = "attachEvent";
-      _removeEventListener = "detachEvent";
-      prefix = "on";
-  }
-
-  if (document) {
-    // detect available wheel event
-    support = "onwheel" in document.createElement("div") ? "wheel" : // Modern browsers support "wheel"
-              document.onmousewheel !== undefined ? "mousewheel" : // Webkit and IE support at least "mousewheel"
-              "DOMMouseScroll"; // let's assume that remaining browsers are older Firefox
-  } else {
-    support = "wheel";
-  }
-}
-
 },{}]},{},[1])(1)
 });

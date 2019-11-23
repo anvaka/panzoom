@@ -65,6 +65,7 @@ function createPanZoom(domElement, options) {
   var boundsPadding = typeof options.boundsPadding === 'number' ? options.boundsPadding : 0.05
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed
   var beforeWheel = options.beforeWheel || noop
+  var beforeMouseDown = options.beforeMouseDown || noop
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed
   var transformOrigin = parseTransformOrigin(options.transformOrigin);
 
@@ -674,6 +675,9 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseDown(e) {
+    // if client does not want to handle this event - just ignore the call
+    if (beforeMouseDown(e)) return
+
     if (touchInProgress) {
       // modern browsers will fire mousedown for touch events too
       // we do not want this: touch is handled separately.

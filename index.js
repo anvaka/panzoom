@@ -549,6 +549,7 @@ function createPanZoom(domElement, options) {
   }
 
   function beforeTouch(e) {
+    // TODO: Need to unify this filtering names. E.g. use `beforeTouch`
     if (options.onTouch && !options.onTouch(e)) {
       // if they return `false` from onTouch, we don't want to stop
       // events propagation. Fixes https://github.com/anvaka/panzoom/issues/12
@@ -560,6 +561,7 @@ function createPanZoom(domElement, options) {
   }
 
   function beforeDoubleClick(e) {
+    // TODO: Need to unify this filtering names. E.g. use `beforeDoubleClick``
     if (options.onDoubleClick && !options.onDoubleClick(e)) {
       // if they return `false` from onTouch, we don't want to stop
       // events propagation. Fixes https://github.com/anvaka/panzoom/issues/46

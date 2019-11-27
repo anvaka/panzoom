@@ -1101,7 +1101,7 @@ function kinetic(getPoint, scroll, settings) {
   };
 
   function dispose() {
-    clearInterval(ticker);
+    cancelAnimationFrame(ticker);
     cancelAnimationFrame(raf);
   }
 
@@ -1111,13 +1111,13 @@ function kinetic(getPoint, scroll, settings) {
     ax = ay = vx = vy = 0;
     timestamp = new Date();
 
-    clearInterval(ticker);
+    cancelAnimationFrame(ticker);
     cancelAnimationFrame(raf);
 
     // we start polling the point position to accumulate velocity
     // Once we stop(), we will use accumulated velocity to keep scrolling
     // an object.
-    ticker = setInterval(track, 100);
+    ticker = requestAnimationFrame(track);
   }
 
   function track() {
@@ -1137,10 +1137,12 @@ function kinetic(getPoint, scroll, settings) {
     // moving average
     vx = 0.8 * dx * dt + 0.2 * vx;
     vy = 0.8 * dy * dt + 0.2 * vy;
+
+    ticker = requestAnimationFrame(track);
   }
 
   function stop() {
-    clearInterval(ticker);
+    cancelAnimationFrame(ticker);
     cancelAnimationFrame(raf);
 
     var currentPoint = getPoint();

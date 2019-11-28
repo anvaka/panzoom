@@ -14,4 +14,4 @@ test('it exists', (t) => {
 
   function scroll() {
   }
-})
+});

@@ -587,12 +587,15 @@ function createPanZoom(domElement, options) {
   }
 
   function startTouchListenerIfNeeded() {
-    if (!touchInProgress) {
-      touchInProgress = true;
-      document.addEventListener('touchmove', handleTouchMove);
-      document.addEventListener('touchend', handleTouchEnd);
-      document.addEventListener('touchcancel', handleTouchEnd);
+    if (touchInProgress) {
+      // no need to do anything, as we already listen to events;
+      return;
     }
+
+    touchInProgress = true;
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('touchcancel', handleTouchEnd);
   }
 
   function handleTouchMove(e) {

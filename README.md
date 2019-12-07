@@ -267,13 +267,13 @@ You can pause and resume the panzoom by calling the following methods:
 
 ``` js
 var element = document.getElementById('scene');
-var controller = panzoom(element);
+var instance = panzoom(element);
 
-controller.isPaused(); //  returns false
-controller.pause();    //  Pauses event handling
-controller.isPaused(); //  returns true now
-controller.resume();   //  Resume panzoom
-controller.isPaused(); //  returns false again
+instance.isPaused(); //  returns false
+instance.pause();    //  Pauses event handling
+instance.isPaused(); //  returns true now
+instance.resume();   //  Resume panzoom
+instance.isPaused(); //  returns false again
 ```
 
 ## Script attachment

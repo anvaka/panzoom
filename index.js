@@ -8,7 +8,9 @@ var wheel = require('wheel');
 var animate = require('amator');
 var eventify = require('ngraph.events');
 var kinetic = require('./lib/kinetic.js');
-var preventTextSelection = require('./lib/textSelectionInterceptor.js')();
+var createTextSelectionInterceptor = require('./lib/createTextSelectionInterceptor.js');
+var domTextSelectionInterceptor = createTextSelectionInterceptor();
+var fakeTextSelectorInterceptor = createTextSelectionInterceptor(true);
 var Transform = require('./lib/transform.js');
 var makeSvgController = require('./lib/svgController.js');
 var makeDomController = require('./lib/domController.js');
@@ -70,6 +72,7 @@ function createPanZoom(domElement, options) {
   var beforeMouseDown = options.beforeMouseDown || noop;
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed;
   var transformOrigin = parseTransformOrigin(options.transformOrigin);
+  var textSelection = options.enableTextSelection ? fakeTextSelectorInterceptor : domTextSelectionInterceptor;
 
   validateBounds(bounds);
 
@@ -711,10 +714,8 @@ function createPanZoom(domElement, options) {
     // window, and we will loose it
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+    textSelection.capture(e.target || e.srcElement);
 
-    if (!options.enableTextSelection) {
-      preventTextSelection.capture(e.target || e.srcElement);
-    }
     return false;
   }
 
@@ -736,9 +737,7 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseUp() {
-    if (!options.enableTextSelection) {
-      preventTextSelection.release();
-    }
+    textSelection.release();
     triggerPanEnd();
     releaseDocumentMouse();
   }

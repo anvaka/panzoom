@@ -9,7 +9,9 @@ var wheel = require('wheel');
 var animate = require('amator');
 var eventify = require('ngraph.events');
 var kinetic = require('./lib/kinetic.js');
-var preventTextSelection = require('./lib/textSelectionInterceptor.js')();
+var createTextSelectionInterceptor = require('./lib/createTextSelectionInterceptor.js');
+var domTextSelectionInterceptor = createTextSelectionInterceptor();
+var fakeTextSelectorInterceptor = createTextSelectionInterceptor(true);
 var Transform = require('./lib/transform.js');
 var makeSvgController = require('./lib/svgController.js');
 var makeDomController = require('./lib/domController.js');
@@ -71,6 +73,7 @@ function createPanZoom(domElement, options) {
   var beforeMouseDown = options.beforeMouseDown || noop;
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed;
   var transformOrigin = parseTransformOrigin(options.transformOrigin);
+  var textSelection = options.enableTextSelection ? fakeTextSelectorInterceptor : domTextSelectionInterceptor;
 
   validateBounds(bounds);
 
@@ -466,6 +469,7 @@ function createPanZoom(domElement, options) {
 
     releaseDocumentMouse();
     releaseTouches();
+    textSelection.release();
 
     triggerPanEnd();
   }
@@ -588,12 +592,15 @@ function createPanZoom(domElement, options) {
   }
 
   function startTouchListenerIfNeeded() {
-    if (!touchInProgress) {
-      touchInProgress = true;
-      document.addEventListener('touchmove', handleTouchMove);
-      document.addEventListener('touchend', handleTouchEnd);
-      document.addEventListener('touchcancel', handleTouchEnd);
+    if (touchInProgress) {
+      // no need to do anything, as we already listen to events;
+      return;
     }
+
+    touchInProgress = true;
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('touchcancel', handleTouchEnd);
   }
 
   function handleTouchMove(e) {
@@ -709,10 +716,8 @@ function createPanZoom(domElement, options) {
     // window, and we will loose it
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+    textSelection.capture(e.target || e.srcElement);
 
-    if (!options.enableTextSelection) {
-      preventTextSelection.capture(e.target || e.srcElement);
-    }
     return false;
   }
 
@@ -734,9 +739,7 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseUp() {
-    if (!options.enableTextSelection) {
-      preventTextSelection.release();
-    }
+    textSelection.release();
     triggerPanEnd();
     releaseDocumentMouse();
   }
@@ -1009,7 +1012,58 @@ function autoRun() {
 
 autoRun();
 
-},{"./lib/domController.js":2,"./lib/kinetic.js":3,"./lib/svgController.js":4,"./lib/textSelectionInterceptor.js":5,"./lib/transform.js":6,"amator":7,"ngraph.events":9,"wheel":10}],2:[function(require,module,exports){
+},{"./lib/createTextSelectionInterceptor.js":2,"./lib/domController.js":3,"./lib/kinetic.js":4,"./lib/svgController.js":5,"./lib/transform.js":6,"amator":7,"ngraph.events":9,"wheel":10}],2:[function(require,module,exports){
+/**
+ * Disallows selecting text.
+ */
+module.exports = createTextSelectionInterceptor;
+
+function createTextSelectionInterceptor(useFake) {
+  if (useFake) {
+    return {
+      capture: noop,
+      release: noop
+    };
+  }
+
+  var dragObject;
+  var prevSelectStart;
+  var prevDragStart;
+  var wasCaptured = false;
+
+  return {
+    capture: capture,
+    release: release
+  };
+
+  function capture(domObject) {
+    wasCaptured = true;
+    prevSelectStart = window.document.onselectstart;
+    prevDragStart = window.document.ondragstart;
+
+    window.document.onselectstart = disabled;
+
+    dragObject = domObject;
+    dragObject.ondragstart = disabled;
+  }
+
+  function release() {
+    if (!wasCaptured) return;
+    
+    wasCaptured = false;
+    window.document.onselectstart = prevSelectStart;
+    if (dragObject) dragObject.ondragstart = prevDragStart;
+  }
+}
+
+function disabled(e) {
+  e.stopPropagation();
+  return false;
+}
+
+function noop() {}
+
+},{}],3:[function(require,module,exports){
 module.exports = makeDomController
 
 function makeDomController(domElement, options) {
@@ -1063,7 +1117,7 @@ function makeDomController(domElement, options) {
   }
 }
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 (function (global){
 /**
  * Allows smooth kinetic scrolling of the surface
@@ -1080,9 +1134,6 @@ function kinetic(getPoint, scroll, settings) {
   var amplitude = typeof settings.amplitude === 'number' ? settings.amplitude : 0.25;
   var cancelAnimationFrame = typeof settings.cancelAnimationFrame === 'function' ? settings.cancelAnimationFrame : getCancelAnimationFrame();
   var requestAnimationFrame = typeof settings.requestAnimationFrame === 'function' ? settings.requestAnimationFrame : getRequestAnimationFrame();
-
-  var setInterval = typeof settings.setInterval === 'function' ? settings.setInterval : global.setInterval;
-  var clearInterval = typeof settings.clearInterval === 'function' ? settings.clearInterval : global.clearInterval;
 
   var lastPoint;
   var timestamp;
@@ -1206,7 +1257,7 @@ function getRequestAnimationFrame() {
   }
 }
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 module.exports = makeSvgController
 
 function makeSvgController(svgElement, options) {
@@ -1270,43 +1321,6 @@ function makeSvgController(svgElement, options) {
       transform.x + ' ' + transform.y + ')')
   }
 }
-},{}],5:[function(require,module,exports){
-/**
- * Disallows selecting text.
- */
-module.exports = createTextSelectionInterceptor
-
-function createTextSelectionInterceptor() {
-  var dragObject
-  var prevSelectStart
-  var prevDragStart
-
-  return {
-    capture: capture,
-    release: release
-  }
-
-  function capture(domObject) {
-    prevSelectStart = window.document.onselectstart
-    prevDragStart = window.document.ondragstart
-
-    window.document.onselectstart = disabled
-
-    dragObject = domObject
-    dragObject.ondragstart = disabled
-  }
-
-  function release() {
-    window.document.onselectstart = prevSelectStart
-    if (dragObject) dragObject.ondragstart = prevDragStart
-  }
-}
-
-function disabled(e) {
-  e.stopPropagation()
-  return false
-}
-
 },{}],6:[function(require,module,exports){
 module.exports = Transform;
 

@@ -468,6 +468,7 @@ function createPanZoom(domElement, options) {
 
     releaseDocumentMouse();
     releaseTouches();
+    textSelection.release();
 
     triggerPanEnd();
   }

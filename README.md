@@ -20,7 +20,7 @@ npm install panzoom --save
 Or download from CDN:
 
 ```
-<script src='https://unpkg.com/panzoom@8.4.0/dist/panzoom.min.js'></script>
+<script src='https://unpkg.com/panzoom@8.7.0/dist/panzoom.min.js'></script>
 ```
 
 If you download from CDN the library will be available under `panzoom` global name.
@@ -133,6 +133,21 @@ See [JSFiddle](https://jsfiddle.net/Laxq9jLu/) for the demo. The tiger will be
 zoomable only when `Alt` key is down.
 
 
+## Ignore mouse down
+
+If you want to disable panning or filter it by pressing a specific key, use the
+`beforeMouseDown()` option. E.g.
+
+``` js
+panzoom(element, {
+  beforeMouseDown: function(e) {
+    // allow mouse-down panning only if altKey is down. Otherwise - ignore
+    var shouldIgnore = !e.altKey;
+    return shouldIgnore;
+  }
+});
+```
+
 ## Ignore keyboard events
 
 By default, panzoom will listen to keyboard events, so that users can navigate the scene
@@ -202,6 +217,20 @@ panZoom(element, {
 });
 ```
 
+To get or set new transform origin use the following API:
+
+``` js
+let instance = panzoom(element, {
+  // now all zoom operations will happen based on the center of the screen
+  transformOrigin: {x: 0.5, y: 0.5}
+});
+
+let origin = instance.getTransformOrigin(); // {x: 0.5, y: 0.5}
+
+instance.setTransformOrigin({x: 0, y: 0}); // now it is topLeft
+instance.setTransformOrigin(null); // remove transform origin
+```
+
 ## Min Max Zoom
 
 You can set min and max zoom, by passing optional `minZoom` and `maxZoom` argument:
@@ -238,13 +267,13 @@ You can pause and resume the panzoom by calling the following methods:
 
 ``` js
 var element = document.getElementById('scene');
-var controller = panzoom(element);
+var instance = panzoom(element);
 
-controller.isPaused(); //  returns false
-controller.pause();    //  Pauses event handling
-controller.isPaused(); //  returns true now
-controller.resume();   //  Resume panzoom
-controller.isPaused(); //  returns false again
+instance.isPaused(); //  returns false
+instance.pause();    //  Pauses event handling
+instance.isPaused(); //  returns true now
+instance.resume();   //  Resume panzoom
+instance.isPaused(); //  returns false again
 ```
 
 ## Script attachment
@@ -257,7 +286,7 @@ If you want to quickly play with panzoom without using javascript, you can confi
 <!DOCTYPE html>
 <html>
 <head>
-  <script src='https://unpkg.com/panzoom@8.4.0/dist/panzoom.min.js'
+  <script src='https://unpkg.com/panzoom@8.7.0/dist/panzoom.min.js'
     query='#scene' name='pz'></script>
 </head>
 <body>

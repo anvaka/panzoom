@@ -19,7 +19,7 @@ npm install panzoom --save
 
 Or download from CDN:
 
-```
+``` html
 <script src='https://unpkg.com/panzoom@8.7.0/dist/panzoom.min.js'></script>
 ```
 
@@ -27,7 +27,7 @@ If you download from CDN the library will be available under `panzoom` global na
 
 ## Pan and zoom DOM subtree
 
-``` JS
+``` js
 // just grab a DOM element
 var element = document.querySelector('#scene')
 

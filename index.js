@@ -631,8 +631,10 @@ function createPanZoom(domElement, options) {
       var scaleMultiplier =
         1 + (currentPinchLength / pinchZoomLength - 1) * pinchSpeed;
 
-      mouseX = (t1.clientX + t2.clientX) / 2;
-      mouseY = (t1.clientY + t2.clientY) / 2;
+      var firstTouchPoint = getOffsetXY(t1);
+      var secondTouchPoint = getOffsetXY(t2);
+      mouseX = (firstTouchPoint.x + secondTouchPoint.x) / 2;
+      mouseY = (firstTouchPoint.y + secondTouchPoint.y) / 2;
       if (transformOrigin) {
         var offset = getTransformOriginOffset();
         mouseX = offset.x;

@@ -440,14 +440,14 @@ function createPanZoom(domElement, options) {
   }
 
   function listenForEvents() {
-    owner.addEventListener('mousedown', onMouseDown);
-    owner.addEventListener('dblclick', onDoubleClick);
-    owner.addEventListener('touchstart', onTouch);
-    owner.addEventListener('keydown', onKeyDown);
+    owner.addEventListener('mousedown', onMouseDown, {passive: false});
+    owner.addEventListener('dblclick', onDoubleClick, {passive: false});
+    owner.addEventListener('touchstart', onTouch, {passive: false});
+    owner.addEventListener('keydown', onKeyDown, {passive: false});
 
     // Need to listen on the owner container, so that we are not limited
     // by the size of the scrollable domElement
-    wheel.addWheelListener(owner, onMouseWheel);
+    wheel.addWheelListener(owner, onMouseWheel, {passive: false});
 
     makeDirty();
   }
@@ -608,17 +608,17 @@ function createPanZoom(domElement, options) {
       var touch = e.touches[0];
 
       var offset = getOffsetXY(touch);
+      var point = transformToScreen(offset.x, offset.y);
 
-      var dx = offset.x - mouseX;
-      var dy = offset.y - mouseY;
+      var dx = point.x - mouseX;
+      var dy = point.y - mouseY;
 
       if (dx !== 0 && dy !== 0) {
         triggerPanStart();
       }
-      mouseX = offset.x;
-      mouseY = offset.y;
-      var point = transformToScreen(dx, dy);
-      internalMoveBy(point.x, point.y);
+      mouseX = point.x;
+      mouseY = point.y;
+      internalMoveBy(dx, dy);
     } else if (e.touches.length === 2) {
       // it's a zoom, let's find direction
       multiTouch = true;
@@ -631,8 +631,10 @@ function createPanZoom(domElement, options) {
       var scaleMultiplier =
         1 + (currentPinchLength / pinchZoomLength - 1) * pinchSpeed;
 
-      mouseX = (t1.clientX + t2.clientX) / 2;
-      mouseY = (t1.clientY + t2.clientY) / 2;
+      var firstTouchPoint = getOffsetXY(t1);
+      var secondTouchPoint = getOffsetXY(t2);
+      mouseX = (firstTouchPoint.x + secondTouchPoint.x) / 2;
+      mouseY = (firstTouchPoint.y + secondTouchPoint.y) / 2;
       if (transformOrigin) {
         var offset = getTransformOriginOffset();
         mouseX = offset.x;

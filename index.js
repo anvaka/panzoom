@@ -608,17 +608,17 @@ function createPanZoom(domElement, options) {
       var touch = e.touches[0];
 
       var offset = getOffsetXY(touch);
+      var point = transformToScreen(offset.x, offset.y);
 
-      var dx = offset.x - mouseX;
-      var dy = offset.y - mouseY;
+      var dx = point.x - mouseX;
+      var dy = point.y - mouseY;
 
       if (dx !== 0 && dy !== 0) {
         triggerPanStart();
       }
-      mouseX = offset.x;
-      mouseY = offset.y;
-      var point = transformToScreen(dx, dy);
-      internalMoveBy(point.x, point.y);
+      mouseX = point.x;
+      mouseY = point.y;
+      internalMoveBy(dx, dy);
     } else if (e.touches.length === 2) {
       // it's a zoom, let's find direction
       multiTouch = true;

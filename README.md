@@ -7,7 +7,7 @@ Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).
  * [Regular DOM object](https://anvaka.github.io/panzoom/demo/dom.html)
  * [Standalone page](https://anvaka.github.io/panzoom/demo/index.html) - this repository
  * [YASIV](http://www.yasiv.com/#/Search?q=algorithms&category=Books&lang=US) - my hobby project
- * [SVG Tiger](https://jsfiddle.net/uwxcmbyg/609/) - js fiddle
+ * [SVG Tiger](https://jsfiddle.net/anvaka/9twnb7zr/) - js fiddle
 
 # Usage
 

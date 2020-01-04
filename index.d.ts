@@ -29,6 +29,7 @@ declare module "panzoom" {
     smoothScroll?: boolean;
     controller?: SVGElement | HTMLElement;
     enableTextSelection?: boolean;
+    disableKeyboardInteraction?: boolean;
     transformOrigin?: TransformOrigin;
   }
 

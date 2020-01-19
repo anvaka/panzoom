@@ -16,7 +16,7 @@ var Transform = require('./lib/transform.js');
 var makeSvgController = require('./lib/svgController.js');
 var makeDomController = require('./lib/domController.js');
 
-var defaultZoomSpeed = 0.065;
+var defaultZoomSpeed = 1;
 var defaultDoubleTapZoomSpeed = 1.75;
 var doubleTapSpeedInMS = 300;
 
@@ -529,7 +529,7 @@ function createPanZoom(domElement, options) {
     }
 
     if (z) {
-      var scaleMultiplier = getScaleMultiplier(z);
+      var scaleMultiplier = getScaleMultiplier(z * 100);
       var offset = transformOrigin ? getTransformOriginOffset() : midPoint();
       publicZoomTo(offset.x, offset.y, scaleMultiplier);
     }
@@ -766,7 +766,10 @@ function createPanZoom(domElement, options) {
 
     smoothScroll.cancel();
 
-    var scaleMultiplier = getScaleMultiplier(e.deltaY);
+    var delta = e.deltaY;
+    if (e.deltaMode > 0) delta *= 100;
+
+    var scaleMultiplier = getScaleMultiplier(delta);
 
     if (scaleMultiplier !== 1) {
       var offset = transformOrigin
@@ -840,16 +843,9 @@ function createPanZoom(domElement, options) {
   }
 
   function getScaleMultiplier(delta) {
-    var scaleMultiplier = 1;
-    if (delta > 0) {
-      // zoom out
-      scaleMultiplier = 1 - speed;
-    } else if (delta < 0) {
-      // zoom in
-      scaleMultiplier = 1 + speed;
-    }
-
-    return scaleMultiplier;
+    var sign = Math.sign(delta);
+    var deltaAdjustedSpeed = Math.min(0.25, Math.abs(speed * delta/128)); 
+    return 1 - sign * deltaAdjustedSpeed;
   }
 
   function triggerPanStart() {

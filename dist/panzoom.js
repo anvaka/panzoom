@@ -132,7 +132,10 @@ function createPanZoom(domElement, options) {
     getMaxZoom: getMaxZoom,
 
     getTransformOrigin: getTransformOrigin,
-    setTransformOrigin: setTransformOrigin
+    setTransformOrigin: setTransformOrigin,
+
+    getZoomSpeed: getZoomSpeed,
+    setZoomSpeed: setZoomSpeed
   };
 
   eventify(api);
@@ -242,6 +245,17 @@ function createPanZoom(domElement, options) {
 
   function setTransformOrigin(newTransformOrigin) {
     transformOrigin = parseTransformOrigin(newTransformOrigin);
+  }
+
+  function getZoomSpeed() {
+    return speed;
+  }
+
+  function setZoomSpeed(newSpeed) {
+    if (!Number.isFinite(newSpeed)) {
+      throw new Error('Zoom speed should be a number');
+    }
+    speed = newSpeed;
   }
 
   function getPoint() {

@@ -888,7 +888,7 @@ function createPanZoom(domElement, options) {
   }
 
   function triggerEvent(name) {
-    api.fire(name, api, {"foo":1});
+    api.fire(name, api);
   }
 
   function triggerEventDetails(name) {

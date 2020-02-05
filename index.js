@@ -91,6 +91,9 @@ function createPanZoom(domElement, options) {
   var mouseX;
   var mouseY;
 
+  //save mouse delta
+  var mouseChange = {};
+
   var pinchZoomLength;
 
   var smoothScroll;
@@ -268,13 +271,16 @@ function createPanZoom(domElement, options) {
     transform.x = x;
     transform.y = y;
 
-    keepTransformInsideBounds();
-
-    triggerEvent('pan');
+    keepTransformInsideBounds()
     makeDirty();
   }
 
   function moveBy(dx, dy) {
+      // trigger the pan event one step earlier and expose dx,dy through the api
+      // allows user to track mouse movements on panning
+    mouseChange.dx = dx;
+    mouseChange.dy = dy;
+    triggerEventDetails('pan');
     moveTo(transform.x + dx, transform.y + dy);
   }
 
@@ -882,8 +888,13 @@ function createPanZoom(domElement, options) {
   }
 
   function triggerEvent(name) {
-    api.fire(name, api);
+    api.fire(name, api, {"foo":1});
   }
+
+  function triggerEventDetails(name) {
+    // add mouse movement to the api so user can listen for it on panning event
+  api.fire(name, mouseChange);
+}
 }
 
 function parseTransformOrigin(options) {

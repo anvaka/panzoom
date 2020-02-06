@@ -92,6 +92,9 @@ function createPanZoom(domElement, options) {
   var mouseX;
   var mouseY;
 
+  //save mouse delta
+  var mouseChange = {};
+
   var pinchZoomLength;
 
   var smoothScroll;
@@ -135,7 +138,9 @@ function createPanZoom(domElement, options) {
     setTransformOrigin: setTransformOrigin,
 
     getZoomSpeed: getZoomSpeed,
-    setZoomSpeed: setZoomSpeed
+    setZoomSpeed: setZoomSpeed,
+
+    getMouseMovement: getMouseMovement
   };
 
   eventify(api);
@@ -251,6 +256,10 @@ function createPanZoom(domElement, options) {
     return speed;
   }
 
+  function getMouseMovement(){
+    return mouseChange;
+  }
+
   function setZoomSpeed(newSpeed) {
     if (!Number.isFinite(newSpeed)) {
       throw new Error('Zoom speed should be a number');
@@ -276,6 +285,10 @@ function createPanZoom(domElement, options) {
   }
 
   function moveBy(dx, dy) {
+      // save dx,dy  to later be exposed through the through the api
+      // allows user to track mouse movements on panning
+    mouseChange.dx = dx;
+    mouseChange.dy = dy;
     moveTo(transform.x + dx, transform.y + dy);
   }
 
@@ -885,6 +898,7 @@ function createPanZoom(domElement, options) {
   function triggerEvent(name) {
     api.fire(name, api);
   }
+
 }
 
 function parseTransformOrigin(options) {
@@ -1614,7 +1628,7 @@ module.exports = function bezier (mX1, mY1, mX2, mY2) {
 };
 
 },{}],9:[function(require,module,exports){
-module.exports = function(subject) {
+module.exports = function eventify(subject) {
   validateSubject(subject);
 
   var eventsStorage = createEventsStorage(subject);

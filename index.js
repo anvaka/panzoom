@@ -80,9 +80,7 @@ function createPanZoom(domElement, options) {
     autocenter();
   }
 
-  var frameAnimation;
-  var lastTouchEndTime = 0;
-  var touchInProgress = false;
+  setInitialPosition();
 
   // We only need to fire panstart when actual move happens
   var panstartFired = false;
@@ -127,6 +125,9 @@ function createPanZoom(domElement, options) {
     isPaused: isPaused,
 
     getTransform: getTransformModel,
+    showRectangle: showRectangle,
+	  resetZoom: setInitialPosition
+
     getMinZoom: getMinZoom,
     getMaxZoom: getMaxZoom,
 
@@ -155,6 +156,15 @@ function createPanZoom(domElement, options) {
 
   function isPaused() {
     return paused;
+  }
+
+  function setInitialPosition(){
+  	var initialPosition = (typeof options.initialPosition === "object") ? options.initalPosition : {}
+    setPoint(initialPosition.x || 0, initialPosition.y || 0);
+    setScale(initialPosition.zoom || 1);
+    triggerEvent('pan');
+    triggerEvent('zoom');
+    makeDirty();
   }
 
   function showRectangle(rect) {
@@ -263,6 +273,16 @@ function createPanZoom(domElement, options) {
       y: transform.y
     };
   }
+
+  function setPoint(x,y) {
+  	transform.x = x;
+  	transform.y = y;
+  }
+
+  function setScale(scale) {
+	transform.scale = scale;
+  }
+
 
   function moveTo(x, y) {
     transform.x = x;

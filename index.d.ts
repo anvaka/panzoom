@@ -63,7 +63,9 @@ declare module "panzoom" {
     off: (eventName: string, handler: Function) => void;
     fire: (eventName: string) => void;
     getMinZoom: () => number;
+    setMinZoom: (newMinZoom: number) => number;
     getMaxZoom: () => number;
+    setMaxZoom: (newMaxZoom: number) => number;
     getTransformOrigin: () => TransformOrigin;
     setTransformOrigin: (newTransformOrigin: TransformOrigin) => void;
   }

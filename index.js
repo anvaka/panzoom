@@ -127,8 +127,12 @@ function createPanZoom(domElement, options) {
     isPaused: isPaused,
 
     getTransform: getTransformModel,
+
     getMinZoom: getMinZoom,
+    setMinZoom: setMinZoom,
+
     getMaxZoom: getMaxZoom,
+    setMaxZoom: setMaxZoom,
 
     getTransformOrigin: getTransformOrigin,
     setTransformOrigin: setTransformOrigin,
@@ -234,8 +238,16 @@ function createPanZoom(domElement, options) {
     return minZoom;
   }
 
+  function setMinZoom(newMinZoom) {
+    minZoom = newMinZoom;
+  }
+
   function getMaxZoom() {
     return maxZoom;
+  }
+
+  function setMaxZoom(newMaxZoom) {
+    maxZoom = newMaxZoom;
   }
 
   function getTransformOrigin() {
@@ -435,7 +447,7 @@ function createPanZoom(domElement, options) {
     var lastY = 0;
 
     moveByAnimation = animate(from, to, {
-      step: function(v) {
+      step: function (v) {
         moveBy(v.x - lastX, v.y - lastY);
 
         lastX = v.x;
@@ -454,14 +466,14 @@ function createPanZoom(domElement, options) {
   }
 
   function listenForEvents() {
-    owner.addEventListener('mousedown', onMouseDown, {passive: false});
-    owner.addEventListener('dblclick', onDoubleClick, {passive: false});
-    owner.addEventListener('touchstart', onTouch, {passive: false});
-    owner.addEventListener('keydown', onKeyDown, {passive: false});
+    owner.addEventListener('mousedown', onMouseDown, { passive: false });
+    owner.addEventListener('dblclick', onDoubleClick, { passive: false });
+    owner.addEventListener('touchstart', onTouch, { passive: false });
+    owner.addEventListener('keydown', onKeyDown, { passive: false });
 
     // Need to listen on the owner container, so that we are not limited
     // by the size of the scrollable domElement
-    wheel.addWheelListener(owner, onMouseWheel, {passive: false});
+    wheel.addWheelListener(owner, onMouseWheel, { passive: false });
 
     makeDirty();
   }
@@ -812,7 +824,7 @@ function createPanZoom(domElement, options) {
     cancelZoomAnimation();
 
     zoomToAnimation = animate(from, to, {
-      step: function(v) {
+      step: function (v) {
         zoomAbs(clientX, clientY, v.scale);
       },
       done: triggerZoomEnd
@@ -828,7 +840,7 @@ function createPanZoom(domElement, options) {
     cancelZoomAnimation();
 
     zoomToAnimation = animate(from, to, {
-      step: function(v) {
+      step: function (v) {
         zoomAbs(clientX, clientY, v.scale);
       }
     });
@@ -857,7 +869,7 @@ function createPanZoom(domElement, options) {
 
   function getScaleMultiplier(delta) {
     var sign = Math.sign(delta);
-    var deltaAdjustedSpeed = Math.min(0.25, Math.abs(speed * delta/128)); 
+    var deltaAdjustedSpeed = Math.min(0.25, Math.abs(speed * delta / 128));
     return 1 - sign * deltaAdjustedSpeed;
   }
 
@@ -910,7 +922,7 @@ function failTransformOrigin(options) {
   );
 }
 
-function noop() {}
+function noop() { }
 
 function validateBounds(bounds) {
   var boundsType = typeof bounds;
@@ -925,7 +937,7 @@ function validateBounds(bounds) {
   if (!validBounds)
     throw new Error(
       'Bounds object is not valid. It can be: ' +
-        'undefined, boolean (true|false) or an object {left, top, right, bottom}'
+      'undefined, boolean (true|false) or an object {left, top, right, bottom}'
     );
 }
 

@@ -83,6 +83,7 @@ function createPanZoom(domElement, options) {
 
   var frameAnimation;
   var lastTouchEndTime = 0;
+  var lastSingleFingerOffset;
   var touchInProgress = false;
 
   // We only need to fire panstart when actual move happens
@@ -610,8 +611,10 @@ function createPanZoom(domElement, options) {
   function handleSingleFingerTouch(e) {
     var touch = e.touches[0];
     var offset = getOffsetXY(touch);
-    mouseX = offset.x;
-    mouseY = offset.y;
+    lastSingleFingerOffset = offset;
+    var point = transformToScreen(offset.x, offset.y);
+    mouseX = point.x;
+    mouseY = point.y;
 
     smoothScroll.cancel();
     startTouchListenerIfNeeded();
@@ -679,8 +682,9 @@ function createPanZoom(domElement, options) {
   function handleTouchEnd(e) {
     if (e.touches.length > 0) {
       var offset = getOffsetXY(e.touches[0]);
-      mouseX = offset.x;
-      mouseY = offset.y;
+      var point = transformToScreen(offset.x, offset.y);
+      mouseX = point.x;
+      mouseY = point.y;
     } else {
       var now = new Date();
       if (now - lastTouchEndTime < doubleTapSpeedInMS) {
@@ -688,7 +692,7 @@ function createPanZoom(domElement, options) {
           var offset = getTransformOriginOffset();
           smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed);
         } else {
-          smoothZoom(mouseX, mouseY, zoomDoubleClickSpeed);
+          smoothZoom(lastSingleFingerOffset.x, lastSingleFingerOffset.y, zoomDoubleClickSpeed);
         }
       }
 

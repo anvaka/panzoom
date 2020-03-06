@@ -186,6 +186,14 @@ panzoom(element, {
 });
 ```
 
+## Get current transform (scale, offset)
+
+To get the current zoom (scale) level use the `getTransform()` method:
+
+```
+console.log(panzoom.getTransform()); // prints {scale: 1.2, x: 10, y: 10}
+```
+
 ## Fixed transform origin when zooming
 
 By default when you use mouse wheel or pinch to zoom, `panzoom` uses mouse

@@ -68,6 +68,8 @@ declare module "panzoom" {
     setMaxZoom: (newMaxZoom: number) => number;
     getTransformOrigin: () => TransformOrigin;
     setTransformOrigin: (newTransformOrigin: TransformOrigin) => void;
+    getZoomSpeed: () => number;
+    setZoomSpeed: (number) => void;
   }
 
   export default function createPanZoom(

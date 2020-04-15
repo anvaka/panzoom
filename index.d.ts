@@ -19,7 +19,7 @@ declare module "panzoom" {
 
   export interface PanZoomController {
     getOwner: () => Element;
-    applyTransform: (Transform) => void;
+    applyTransform: (transform: Transform) => void;
   }
 
   export interface PanZoomOptions {
@@ -76,7 +76,7 @@ declare module "panzoom" {
     getTransformOrigin: () => TransformOrigin;
     setTransformOrigin: (newTransformOrigin: TransformOrigin) => void;
     getZoomSpeed: () => number;
-    setZoomSpeed: (number) => void;
+    setZoomSpeed: (zoomSpeed: number) => void;
   }
 
   export default function createPanZoom(

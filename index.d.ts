@@ -11,6 +11,17 @@ declare module "panzoom" {
     y: number;
   }
 
+  export interface Transform {
+    x: number;
+    y: number;
+    scale: number;
+  }
+
+  export interface PanZoomController {
+    getOwner: () => Element;
+    applyTransform: (Transform) => void;
+  }
+
   export interface PanZoomOptions {
     filterKey?: () => boolean;
     bounds?: boolean | Bounds;
@@ -27,7 +38,7 @@ declare module "panzoom" {
     onTouch?: (e: TouchEvent) => void;
     onDoubleClick?: (e: Event) => void;
     smoothScroll?: boolean;
-    controller?: SVGElement | HTMLElement;
+    controller?: PanZoomController;
     enableTextSelection?: boolean;
     disableKeyboardInteraction?: boolean;
     transformOrigin?: TransformOrigin;
@@ -50,11 +61,7 @@ declare module "panzoom" {
       clientY: number,
       toScaleValue: number
     ) => void;
-    getTransform: () => {
-      x: number;
-      y: number;
-      scale: number;
-    };
+    getTransform: () => Transform;
     showRectangle: (rect: ClientRect) => void;
     pause: () => void;
     resume: () => void;

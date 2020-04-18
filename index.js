@@ -33,11 +33,9 @@ function createPanZoom(domElement, options) {
   var panController = options.controller;
 
   if (!panController) {
-    if (domElement instanceof SVGElement) {
+    if (makeSvgController.canAttach(domElement)) {
       panController = makeSvgController(domElement, options);
-    }
-
-    if (domElement instanceof HTMLElement) {
+    } else if (makeDomController.canAttach(domElement)) {
       panController = makeDomController(domElement, options);
     }
   }

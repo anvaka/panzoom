@@ -22,13 +22,13 @@
   },
   "dependencies": {
     "amator": "^1.1.0",
-    "ngraph.events": "^1.0.0",
+    "ngraph.events": "^1.2.1",
     "wheel": "^1.0.0"
   },
   "devDependencies": {
-    "browserify": "^16.2.3",
-    "jsdom": "^15.2.1",
-    "tap": "^14.9.1",
-    "uglify-js": "^3.6.0"
+    "browserify": "^16.5.1",
+    "jsdom": "^16.2.2",
+    "tap": "^14.10.7",
+    "uglify-js": "^3.9.1"
   }
 }

@@ -1143,7 +1143,6 @@ function isDomElement(element) {
 }
 
 },{}],4:[function(require,module,exports){
-(function (global){
 /**
  * Allows smooth kinetic scrolling of the surface
  */
@@ -1269,19 +1268,17 @@ function kinetic(getPoint, scroll, settings) {
 }
 
 function getCancelAnimationFrame() {
-  if (typeof global.cancelAnimationFrame === 'function') return global.cancelAnimationFrame;
-
+  if (typeof cancelAnimationFrame === 'function') return cancelAnimationFrame;
   return clearTimeout;
 }
 
 function getRequestAnimationFrame() {
-  if (typeof global.requestAnimationFrame === 'function') return global.requestAnimationFrame;
+  if (typeof requestAnimationFrame === 'function') return requestAnimationFrame;
 
   return function (handler) {
     return setTimeout(handler, 16);
   }
 }
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],5:[function(require,module,exports){
 module.exports = makeSvgController
 module.exports.canAttach = isSVGElement;

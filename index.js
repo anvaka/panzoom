@@ -1,6 +1,4 @@
 'use strict';
-
-/* globals SVGElement */
 /**
  * Allows to drag and zoom svg elements
  */
@@ -696,7 +694,6 @@ function createPanZoom(domElement, options) {
 
       lastTouchEndTime = now;
 
-      touchInProgress = false;
       triggerPanEnd();
       releaseTouches();
     }
@@ -786,6 +783,7 @@ function createPanZoom(domElement, options) {
     document.removeEventListener('touchcancel', handleTouchEnd);
     panstartFired = false;
     multiTouch = false;
+    touchInProgress = false;
   }
 
   function onMouseWheel(e) {

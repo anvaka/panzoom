@@ -1,7 +1,5 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.panzoom = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 'use strict';
-
-/* globals SVGElement */
 /**
  * Allows to drag and zoom svg elements
  */
@@ -34,11 +32,9 @@ function createPanZoom(domElement, options) {
   var panController = options.controller;
 
   if (!panController) {
-    if (domElement instanceof SVGElement) {
+    if (makeSvgController.canAttach(domElement)) {
       panController = makeSvgController(domElement, options);
-    }
-
-    if (domElement instanceof HTMLElement) {
+    } else if (makeDomController.canAttach(domElement)) {
       panController = makeDomController(domElement, options);
     }
   }
@@ -692,13 +688,13 @@ function createPanZoom(domElement, options) {
           var offset = getTransformOriginOffset();
           smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed);
         } else {
+          // We want untransformed x/y here.
           smoothZoom(lastSingleFingerOffset.x, lastSingleFingerOffset.y, zoomDoubleClickSpeed);
         }
       }
 
       lastTouchEndTime = now;
 
-      touchInProgress = false;
       triggerPanEnd();
       releaseTouches();
     }
@@ -788,6 +784,7 @@ function createPanZoom(domElement, options) {
     document.removeEventListener('touchcancel', handleTouchEnd);
     panstartFired = false;
     multiTouch = false;
+    touchInProgress = false;
   }
 
   function onMouseWheel(e) {
@@ -1094,19 +1091,15 @@ function noop() {}
 },{}],3:[function(require,module,exports){
 module.exports = makeDomController
 
+module.exports.canAttach = isDomElement;
+
 function makeDomController(domElement, options) {
-  var elementValid = (domElement instanceof HTMLElement)
+  var elementValid = isDomElement(domElement); 
   if (!elementValid) {
-    throw new Error('svg element is required for svg.panzoom to work')
+    throw new Error('panzoom requires DOM element to be attached to the DOM tree')
   }
 
-  var owner = domElement.parentElement
-  if (!owner) {
-    throw new Error(
-      'Do not apply panzoom to the detached DOM element. '
-    )
-  }
-
+  var owner = domElement.parentElement;
   domElement.scrollTop = 0;
   
   if (!options.disableKeyboardInteraction) {
@@ -1143,6 +1136,10 @@ function makeDomController(domElement, options) {
       transform.scale + ', ' +
       transform.x + ', ' + transform.y + ')'
   }
+}
+
+function isDomElement(element) {
+  return element && element.parentElement && element.style;
 }
 
 },{}],4:[function(require,module,exports){
@@ -1287,10 +1284,10 @@ function getRequestAnimationFrame() {
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],5:[function(require,module,exports){
 module.exports = makeSvgController
+module.exports.canAttach = isSVGElement;
 
 function makeSvgController(svgElement, options) {
-  var elementValid = (svgElement instanceof SVGElement)
-  if (!elementValid) {
+  if (!isSVGElement(svgElement)) {
     throw new Error('svg element is required for svg.panzoom to work')
   }
 
@@ -1354,6 +1351,10 @@ function makeSvgController(svgElement, options) {
       transform.scale + ' ' +
       transform.x + ' ' + transform.y + ')')
   }
+}
+
+function isSVGElement(element) {
+  return element && element.ownerSVGElement && element.getCTM;
 }
 },{}],6:[function(require,module,exports){
 module.exports = Transform;
@@ -1630,7 +1631,7 @@ module.exports = function bezier (mX1, mY1, mX2, mY2) {
 };
 
 },{}],9:[function(require,module,exports){
-module.exports = function(subject) {
+module.exports = function eventify(subject) {
   validateSubject(subject);
 
   var eventsStorage = createEventsStorage(subject);

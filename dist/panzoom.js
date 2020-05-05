@@ -62,6 +62,7 @@ function createPanZoom(domElement, options) {
   var bounds = options.bounds;
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY;
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0;
+  var panOnlyWhenZoomed = typeof options.panOnlyWhenZoomed === 'boolean' ? options.panOnlyWhenZoomed : false;
 
   var boundsPadding = typeof options.boundsPadding === 'number' ? options.boundsPadding : 0.05;
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed;
@@ -116,6 +117,7 @@ function createPanZoom(domElement, options) {
     centerOn: centerOn,
     zoomTo: publicZoomTo,
     zoomAbs: zoomAbs,
+    zoomToCenter: zoomToCenter,
     smoothZoom: smoothZoom,
     smoothZoomAbs: smoothZoomAbs,
     showRectangle: showRectangle,
@@ -136,7 +138,8 @@ function createPanZoom(domElement, options) {
     setTransformOrigin: setTransformOrigin,
 
     getZoomSpeed: getZoomSpeed,
-    setZoomSpeed: setZoomSpeed
+    setZoomSpeed: setZoomSpeed,
+    setNoZoomSelector: setNoZoomSelector
   };
 
   eventify(api);
@@ -266,7 +269,9 @@ function createPanZoom(domElement, options) {
     }
     speed = newSpeed;
   }
-
+  function setNoZoomSelector(selector) {
+    options.noZoom = selector;
+}
   function getPoint() {
     return {
       x: transform.x,
@@ -631,6 +636,8 @@ function createPanZoom(domElement, options) {
   function handleTouchMove(e) {
     if (e.touches.length === 1) {
       e.stopPropagation();
+      // Pan only when zoomed
+      if (panOnlyWhenZoomed && transform.scale == minZoom) return;
       var touch = e.touches[0];
 
       var offset = getOffsetXY(touch);
@@ -752,6 +759,8 @@ function createPanZoom(domElement, options) {
   function onMouseMove(e) {
     // no need to worry about mouse events when touch is happening
     if (touchInProgress) return;
+    // Pan only when zoomed
+    if (panOnlyWhenZoomed && transform.scale == minZoom) return;
 
     triggerPanStart();
 
@@ -860,6 +869,17 @@ function createPanZoom(domElement, options) {
     smoothScroll.cancel();
     cancelZoomAnimation();
     return zoomByRatio(clientX, clientY, scaleMultiplier);
+  }
+
+    /**
+  * Zooms to the center of the container
+  * @param {Number} scaleMultiplier 0.8 = zoom out by 20% and 1.2 = zoom in by 20%
+  */
+  function zoomToCenter(scaleMultiplier) {
+    const containerRect = owner.getBoundingClientRect()
+    const centerX = containerRect.width / 2
+    const centerY = containerRect.height / 2
+    return smoothZoom(centerX, centerY, scaleMultiplier)
   }
 
   function cancelZoomAnimation() {
@@ -1094,48 +1114,74 @@ module.exports = makeDomController
 module.exports.canAttach = isDomElement;
 
 function makeDomController(domElement, options) {
-  var elementValid = isDomElement(domElement); 
-  if (!elementValid) {
-    throw new Error('panzoom requires DOM element to be attached to the DOM tree')
-  }
-
-  var owner = domElement.parentElement;
-  domElement.scrollTop = 0;
-  
-  if (!options.disableKeyboardInteraction) {
-    owner.setAttribute('tabindex', 0);
-  }
-
-  var api = {
-    getBBox: getBBox,
-    getOwner: getOwner,
-    applyTransform: applyTransform,
-  }
-  
-  return api
-
-  function getOwner() {
-    return owner
-  }
-
-  function getBBox() {
-    // TODO: We should probably cache this?
-    return  {
-      left: 0,
-      top: 0,
-      width: domElement.clientWidth,
-      height: domElement.clientHeight
+    var elementValid = isDomElement(domElement);
+    if (!elementValid) {
+        throw new Error('panzoom requires DOM element to be attached to the DOM tree')
     }
-  }
 
-  function applyTransform(transform) {
-    // TODO: Should we cache this?
-    domElement.style.transformOrigin = '0 0 0';
-    domElement.style.transform = 'matrix(' +
-      transform.scale + ', 0, 0, ' +
-      transform.scale + ', ' +
-      transform.x + ', ' + transform.y + ')'
-  }
+    var owner = domElement.parentElement;
+    domElement.scrollTop = 0;
+
+    if (!options.disableKeyboardInteraction) {
+        owner.setAttribute('tabindex', 0);
+    }
+
+    var api = {
+        getBBox: getBBox,
+        getOwner: getOwner,
+        applyTransform: applyTransform,
+    }
+
+    return api
+
+    function getOwner() {
+        return owner
+    }
+
+    function getBBox() {
+        // TODO: We should probably cache this?
+        return {
+            left: 0,
+            top: 0,
+            width: domElement.clientWidth,
+            height: domElement.clientHeight
+        }
+    }
+
+    function applyTransform(transform) {
+        // TODO: Should we cache this?
+        domElement.style.transformOrigin = '0 0 0';
+        domElement.style.transform = 'matrix(' +
+            transform.scale +
+            ', 0, 0, ' +
+            transform.scale +
+            ', ' +
+            transform.x +
+            ', ' +
+            transform.y +
+            ')';
+        if (options.noZoom !== null) {
+
+            var noZ = document.querySelectorAll(options.noZoom);
+            noZ.forEach(el => {
+                var width = el.offsetWidth;
+                var height = el.offsetHeight;
+                var transformRight = width / 2 - (width / 2) / transform.scale;
+                var transformDown = height / 2 - (height / 2) / transform.scale;
+                el.style.transformOrigin = '0 0 0';
+                el.style.transform =
+                    'matrix(' +
+                    (1 / transform.scale) +
+                    ', 0, 0, ' +
+                    (1 / transform.scale) +
+                    ', ' +
+                    transformRight +
+                    ', ' +
+                    transformDown +
+                    ')';
+            });
+        }
+    }
 }
 
 function isDomElement(element) {

@@ -25,7 +25,6 @@ declare module "panzoom" {
   export interface PanZoomOptions {
     filterKey?: () => boolean;
     bounds?: boolean | Bounds;
-    realPinch?: boolean;
     maxZoom?: number;
     minZoom?: number;
     boundsPadding?: number;

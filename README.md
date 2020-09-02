@@ -61,7 +61,7 @@ var element = document.getElementById('scene')
 panzoom(element)
 ```
 
-If your use case requires dynamic behavior (i.e. you want to make a `element` not 
+If require a dynamic behavior (e.g. you want to make an `element` not 
 draggable anymore, or even completely delete an SVG element) make sure to call
 `dispose()` method:
 

@@ -140,6 +140,14 @@ function createPanZoom(domElement, options) {
   };
 
   eventify(api);
+  
+  var initialX = typeof options.initialX === 'number' ? options.initialX : transform.x;
+  var initialY = typeof options.initialY === 'number' ? options.initialY : transform.y;
+  var initialZoom = typeof options.initialZoom === 'number' ? options.initialZoom : transform.scale;
+
+  if(initialX != transform.x || initialY != transform.y || initialZoom != transform.Scale){
+    zoomAbs(initialX, initialY, initialZoom);
+  }
 
   return api;
 
@@ -1036,7 +1044,7 @@ function autoRun() {
 }
 
 autoRun();
-
+	
 },{"./lib/createTextSelectionInterceptor.js":2,"./lib/domController.js":3,"./lib/kinetic.js":4,"./lib/svgController.js":5,"./lib/transform.js":6,"amator":7,"ngraph.events":9,"wheel":10}],2:[function(require,module,exports){
 /**
  * Disallows selecting text.

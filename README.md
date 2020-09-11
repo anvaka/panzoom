@@ -333,12 +333,11 @@ You can set the initial position and zoom, by chaining the `zoomAbs` function wi
 ``` js
 panzoom(element, {
   maxZoom: 1,
-  minZoom: 0.1
-}).zoomAbs(
-  300, // initial x position
-  500, // initial y position
-  0.1  // initial zoom 
-);
+  minZoom: 0.1,
+  initialX: 300,
+  initialY: 500,
+  initialZoom: 0.5
+});
 ```
 
 ## Handling touch events

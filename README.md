@@ -294,7 +294,7 @@ If you want to quickly play with panzoom without using javascript, you can confi
 <!DOCTYPE html>
 <html>
 <head>
-  <script src='https://unpkg.com/panzoom@9.2.4/dist/panzoom.min.js'
+  <script src='https://unpkg.com/panzoom@9.3.0/dist/panzoom.min.js'
     query='#scene' name='pz'></script>
 </head>
 <body>

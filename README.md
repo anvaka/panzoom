@@ -393,10 +393,16 @@ panzoom(element, {
 
 ## Triggering Pan 
 
-To Pan the object using Javascript use `moveTo(<number>,<number>)` function . It expects x, y value to where  to move.
+To Pan the object using Javascript use `moveTo(<number>,<number>)` function. It expects x, y value to where to move.
 
 ``` js
 panzoom.moveTo(0, 0);
+```
+
+To pan in a smooth way use `smoothMoveTo(<number>,<number>)`:
+
+``` js
+panzoom.smoothMoveTo(0, 0);
 ```
 
 # license

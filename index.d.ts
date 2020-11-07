@@ -50,6 +50,7 @@ declare module "panzoom" {
     dispose: () => void;
     moveBy: (dx: number, dy: number, smooth: boolean) => void;
     moveTo: (x: number, y: number) => void;
+    smoothMoveTo: (x: number, y: number) => void;
     centerOn: (ui: any) => void;
     zoomTo: (clientX: number, clientY: number, scaleMultiplier: number) => void;
     zoomAbs: (clientX: number, clientY: number, zoomLevel: number) => void;

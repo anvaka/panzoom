@@ -49,7 +49,7 @@ test('it updates transformation matrix on wheel event', t => {
     t.ok(content.style.transform, 'transform applied');
     t.end();
   }, 40);
-})
+});
 
 test('it can pause/resume', t => {
   var dom = new JSDOM(`<body><div class='content'></div></body>`);
@@ -77,17 +77,17 @@ test('it can pause/resume', t => {
     panzoom.resume();
     t.ok(panzoom.isPaused() === false, 'not paused by default');
 
-    var wheelEvent = new dom.window.WheelEvent('wheel', {deltaY: 1});
+    wheelEvent = new dom.window.WheelEvent('wheel', {deltaY: 1});
     document.body.dispatchEvent(wheelEvent);
     setTimeout(() => {
-      var transform = panzoom.getTransform();
+      transform = panzoom.getTransform();
 
       t.ok(transform.scale !== 1, 'Scale is updated');
       t.ok(content.style.transform, 'transform applied');
       t.end();
     }, 40);
   }, 40);
-})
+});
 
 test('it disposes correctly', t => {
   var dom = new JSDOM(`<body><div class='content'></div></body>`);
@@ -104,11 +104,11 @@ test('it disposes correctly', t => {
     originalTransform = content.style.transform;
     t.ok(originalTransform, 'transform applied first time');
 
-    panzoom.dispose()
+    panzoom.dispose();
 
     var secondWheel = new dom.window.WheelEvent('wheel', {deltaY: 1});
     content.dispatchEvent(secondWheel);
-    setTimeout(verifyTransformIsNotChanged, 40)
+    setTimeout(verifyTransformIsNotChanged, 40);
   }
 
   function verifyTransformIsNotChanged() {
@@ -166,7 +166,7 @@ test('it allows to cancel keyboard events', t => {
       t.equals(x, 0, 'x has not changed');
       t.equals(y, -1, 'y changed!');
       t.equals(z, 0, 'z has not changed');
-      filterKeyCalledCorrectly = true
+      filterKeyCalledCorrectly = true;
 
       // don't let panzoom to handle this event
       return true;
@@ -214,7 +214,7 @@ test('double click zooms in', t => {
   setTimeout(verifyTransformIsChanged, 40);
 
   function verifyTransformIsChanged() {
-    var transform = parseMatrixTransform(content.style.transform)
+    var transform = parseMatrixTransform(content.style.transform);
     t.ok(transform, 'Transform is defined');
     t.ok(transform.scaleX !== 1, 'Scale has changed');
     t.ok(transform.scaleX === transform.scaleY, 'Scale is proportional');
@@ -242,7 +242,7 @@ test('Can cancel preventDefault', t => {
   var calledTimes = 0;
   panzoom.on('zoom', function() {
     calledTimes += 1;
-  })
+  });
 
   var doubleClick = new dom.window.MouseEvent('dblclick', {
     bubbles: true,
@@ -256,7 +256,7 @@ test('Can cancel preventDefault', t => {
   setTimeout(verifyTransformIsChanged, 40);
 
   function verifyTransformIsChanged() {
-    var transform = parseMatrixTransform(content.style.transform)
+    var transform = parseMatrixTransform(content.style.transform);
     t.ok(transform, 'Transform is defined');
     t.ok(transform.scaleX !== 1, 'Scale has changed');
     t.ok(transform.scaleX === transform.scaleY, 'Scale is proportional');
@@ -275,12 +275,12 @@ function makeBoundingRect(width, height) {
         width: width,
         height: height
       };
-  }
+  };
 }
 
 function parseMatrixTransform(transformString) {
   if (!transformString) return;
-  var matches = transformString.match(/matrix\(([-+]?\d*\.?\d*), 0, 0, ([-+]?\d*\.?\d*), ([-+]?\d*\.?\d*), ([-+]?\d*\.?\d*)\)/)
+  var matches = transformString.match(/matrix\(([-+]?\d*\.?\d*), 0, 0, ([-+]?\d*\.?\d*), ([-+]?\d*\.?\d*), ([-+]?\d*\.?\d*)\)/);
   if (!matches) return;
 
   return {
@@ -288,11 +288,11 @@ function parseMatrixTransform(transformString) {
     scaleY: parseFloat(matches[2]), 
     dx: parseFloat(matches[3]), 
     dy: parseFloat(matches[4])
-  }
+  };
 }
 
 function countEvent(counter, name) {
   return function() {
     counter[name] = (counter[name] || 0) + 1;
-  }
+  };
 }

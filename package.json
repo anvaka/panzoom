@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "browserify": "^16.5.1",
+    "eslint": "^7.13.0",
     "jsdom": "^16.3.0",
     "tap": "^14.10.8",
     "uglify-js": "^3.10.0"

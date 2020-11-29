@@ -874,10 +874,27 @@ function createPanZoom(domElement, options) {
     return zoomByRatio(clientX, clientY, scaleMultiplier);
   }
 
+  function cancelAllAnimations() {
+    cancelZoomAnimation();
+    cancelMoveByAnimation();
+    cancelSmoothScroll();
+  }
+
   function cancelZoomAnimation() {
     if (zoomToAnimation) {
       zoomToAnimation.cancel();
       zoomToAnimation = null;
+    }
+  }
+
+  function cancelSmoothScroll() {
+    smoothScroll.cancel();
+  }
+
+  function cancelMoveByAnimation() {
+    if (moveByAnimation)  {
+      moveByAnimation.cancel();
+      moveByAnimation = null;
     }
   }
 

@@ -187,6 +187,45 @@ function createPanZoom(domElement, options) {
     transform.scale = scale;
   }
 
+  function internalShowRectangle(rect) {
+    var newTransform = clientRectToTransform(rect);
+
+    setTransform(newTransform);
+  }
+
+
+  function clientRectToTransform(rect) {
+    // TODO: this duplicates autocenter. I think autocenter should go.
+    var clientRect = owner.getBoundingClientRect();
+    var size = transformToScreen(clientRect.width, clientRect.height);
+
+    var rectWidth = rect.right - rect.left;
+    var rectHeight = rect.bottom - rect.top;
+    if (!Number.isFinite(rectWidth) || !Number.isFinite(rectHeight)) {
+      throw new Error('Invalid rectangle');
+    }
+
+    var dw = size.x / rectWidth;
+    var dh = size.y / rectHeight;
+    var scale = Math.min(dw, dh);
+
+    var newTransform = new Transform();
+    newTransform.x = -(rect.left + rectWidth / 2) * scale + size.x / 2;
+    newTransform.y = -(rect.top + rectHeight / 2) * scale + size.y / 2;
+    newTransform.scale = scale;
+
+    return newTransform;
+  }
+
+  function setTransform(newTransform) {
+    transform.x = newTransform.x;
+    transform.y = newTransform.y;
+    transform.scale = newTransform.scale;
+
+    triggerEvent('pan');
+    triggerEvent('zoom');
+    makeDirty();
+  }
   function transformToScreen(x, y) {
     if (panController.getScreenCTM) {
       var parentCTM = panController.getScreenCTM();

@@ -102,6 +102,7 @@ function createPanZoom(domElement, options) {
 
   var moveByAnimation;
   var zoomToAnimation;
+  var showRectangleAnimation;
 
   var multiTouch;
   var paused = false;
@@ -119,6 +120,7 @@ function createPanZoom(domElement, options) {
     smoothZoom: smoothZoom,
     smoothZoomAbs: smoothZoomAbs,
     showRectangle: showRectangle,
+    smoothShowRectangle: publicSmoothShowRectangle,
 
     pause: pause,
     resume: resume,
@@ -170,7 +172,7 @@ function createPanZoom(domElement, options) {
   function showRectangle(rect) {
     cancelAllAnimations();
     internalShowRectangle(rect);
-    }
+  }
 
   function internalShowRectangle(rect) {
     var newTransform = clientRectToTransform(rect);
@@ -208,6 +210,37 @@ function createPanZoom(domElement, options) {
     triggerEvent('pan');
     triggerEvent('zoom');
     makeDirty();
+  }
+
+  function publicSmoothShowRectangle(rect, duration = undefined) {
+    cancelAllAnimations();
+
+    var to = rect;
+    // get rect from current transform
+    var from = transformToClientRect(transform);
+
+    // default duration is 600ms
+    var dur = 600;
+    if (typeof duration === 'function') {
+      // let consumer calculate a duration based on the new and current transform
+      dur = duration(from, to);
+    }
+
+    var p = new Promise((resolve, _) => {
+      showRectangleAnimation = animate(from, to, {
+        duration: dur,
+        step: function (nextTransform) {
+          internalShowRectangle(nextTransform);
+        },
+        done: () => {
+          triggerZoomEnd();
+          triggerPanEnd();
+          resolve(true);
+        }
+      });
+    })
+
+    return p;
   }
 
   // should this be made public?
@@ -914,6 +947,7 @@ function createPanZoom(domElement, options) {
   }
 
   function cancelAllAnimations() {
+    cancelShowRectangleAnimation();
     cancelZoomAnimation();
     cancelMoveByAnimation();
     cancelSmoothScroll();
@@ -934,6 +968,13 @@ function createPanZoom(domElement, options) {
     if (moveByAnimation)  {
       moveByAnimation.cancel();
       moveByAnimation = null;
+    }
+  }
+
+  function cancelShowRectangleAnimation() {
+    if (showRectangleAnimation) {
+      showRectangleAnimation.cancel();
+      showRectangleAnimation = null;
     }
   }
 

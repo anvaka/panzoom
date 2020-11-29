@@ -66,6 +66,7 @@ declare module "panzoom" {
     ) => void;
     getTransform: () => Transform;
     showRectangle: (rect: ClientRect) => void;
+    smoothShowRectangle: (rect: ClientRect, duration: (from:ClientRect, to:ClientRect) => number) => Promise<boolean>;
     pause: () => void;
     resume: () => void;
     isPaused: () => boolean;

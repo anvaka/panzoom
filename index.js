@@ -210,6 +210,24 @@ function createPanZoom(domElement, options) {
     makeDirty();
   }
 
+  // should this be made public?
+  function transformToClientRect(transform) {
+    var clientRect = owner.getBoundingClientRect();
+    var size = transformToScreen(clientRect.width, clientRect.height);
+
+    var w = size.x / transform.scale;
+    var h = size.y / transform.scale;
+    var l = transform.x / -transform.scale;
+    var t = transform.y / -transform.scale;
+
+    return {
+      top: t,
+      left: l,
+      bottom: t + h,
+      right: l + w,
+    };
+  }
+
   function transformToScreen(x, y) {
     if (panController.getScreenCTM) {
       var parentCTM = panController.getScreenCTM();

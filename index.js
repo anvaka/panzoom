@@ -168,6 +168,7 @@ function createPanZoom(domElement, options) {
   }
 
   function showRectangle(rect) {
+    cancelAllAnimations();
     // TODO: this duplicates autocenter. I think autocenter should go.
     var clientRect = owner.getBoundingClientRect();
     var size = transformToScreen(clientRect.width, clientRect.height);
@@ -449,7 +450,7 @@ function createPanZoom(domElement, options) {
       return moveBy(dx, dy);
     }
 
-    if (moveByAnimation) moveByAnimation.cancel();
+    cancelAllAnimations();
 
     var from = { x: 0, y: 0 };
     var to = { x: dx, y: dy };
@@ -467,7 +468,7 @@ function createPanZoom(domElement, options) {
   }
 
   function scroll(x, y) {
-    cancelZoomAnimation();
+    cancelAllAnimations();
     moveTo(x, y);
   }
 
@@ -500,7 +501,7 @@ function createPanZoom(domElement, options) {
       frameAnimation = 0;
     }
 
-    smoothScroll.cancel();
+    cancelAllAnimations();
 
     releaseDocumentMouse();
     releaseTouches();
@@ -624,7 +625,7 @@ function createPanZoom(domElement, options) {
     mouseX = point.x;
     mouseY = point.y;
 
-    smoothScroll.cancel();
+    cancelAllAnimations();
     startTouchListenerIfNeeded();
   }
 
@@ -745,7 +746,7 @@ function createPanZoom(domElement, options) {
       (e.button === 1 && window.event !== null) || e.button === 0;
     if (!isLeftButton) return;
 
-    smoothScroll.cancel();
+    cancelAllAnimations();
 
     var offset = getOffsetXY(e);
     var point = transformToScreen(offset.x, offset.y);
@@ -803,7 +804,7 @@ function createPanZoom(domElement, options) {
     // if client does not want to handle this event - just ignore the call
     if (beforeWheel(e)) return;
 
-    smoothScroll.cancel();
+    cancelAllAnimations();
 
     var delta = e.deltaY;
     if (e.deltaMode > 0) delta *= 100;
@@ -834,8 +835,7 @@ function createPanZoom(domElement, options) {
     var from = { scale: fromValue };
     var to = { scale: scaleMultiplier * fromValue };
 
-    smoothScroll.cancel();
-    cancelZoomAnimation();
+    cancelAllAnimations();
 
     zoomToAnimation = animate(from, to, {
       step: function (v) {
@@ -850,8 +850,7 @@ function createPanZoom(domElement, options) {
     var from = { scale: fromValue };
     var to = { scale: toScaleValue };
 
-    smoothScroll.cancel();
-    cancelZoomAnimation();
+    cancelAllAnimations();
 
     zoomToAnimation = animate(from, to, {
       step: function (v) {
@@ -869,8 +868,7 @@ function createPanZoom(domElement, options) {
   }
 
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
-    smoothScroll.cancel();
-    cancelZoomAnimation();
+    cancelAllAnimations();
     return zoomByRatio(clientX, clientY, scaleMultiplier);
   }
 

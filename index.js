@@ -441,7 +441,7 @@ function createPanZoom(domElement, options) {
   }
 
   function smoothMoveTo(x, y){
-    internalMoveBy(x - transform.x, y - transform.y, true)
+    internalMoveBy(x - transform.x, y - transform.y, true);
   }
 
   function internalMoveBy(dx, dy, smooth) {
@@ -1023,8 +1023,8 @@ function autoRun() {
   function collectOptions(script) {
     var attrs = script.attributes;
     var options = {};
-    for (var i = 0; i < attrs.length; ++i) {
-      var attr = attrs[i];
+    for (var j = 0; j < attrs.length; ++j) {
+      var attr = attrs[j];
       var nameValue = getPanzoomAttributeNameValue(attr);
       if (nameValue) {
         options[nameValue.name] = nameValue.value;

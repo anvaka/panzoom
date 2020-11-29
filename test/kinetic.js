@@ -1,4 +1,4 @@
-let kinetic = require('../lib/kinetic')
+let kinetic = require('../lib/kinetic');
 let test = require('tap').test;
 
 test('it exists', (t) => {

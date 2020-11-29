@@ -512,33 +512,46 @@ function createPanZoom(domElement, options) {
     var dx = container.width / 2 - cx;
     var dy = container.height / 2 - cy;
 
-    internalMoveBy(dx, dy, true);
+    return internalMoveBy(dx, dy, true);
   }
 
   function smoothMoveTo(x, y){
-    internalMoveBy(x - transform.x, y - transform.y, true);
+    return internalMoveBy(x - transform.x, y - transform.y, true);
   }
 
   function internalMoveBy(dx, dy, smooth) {
-    if (!smooth) {
-      return moveBy(dx, dy);
-    }
+    var p = new Promise((resolve, _) => {
+      cancelAllAnimations();
 
-    cancelAllAnimations();
+      if (!smooth) {
+        moveBy(dx, dy);
 
-    var from = { x: 0, y: 0 };
-    var to = { x: dx, y: dy };
-    var lastX = 0;
-    var lastY = 0;
+        triggerZoomEnd();
+        triggerPanEnd();
+        resolve(true);
+      } else { 
+        var from = { x: 0, y: 0 };
+        var to = { x: dx, y: dy };
+        var lastX = 0;
+        var lastY = 0;
 
-    moveByAnimation = animate(from, to, {
-      step: function (v) {
-        moveBy(v.x - lastX, v.y - lastY);
-
-        lastX = v.x;
-        lastY = v.y;
+        moveByAnimation = animate(from, to, {
+          step: function (v) {
+            moveBy(v.x - lastX, v.y - lastY);
+    
+            lastX = v.x;
+            lastY = v.y;
+          },
+          done: () => {
+            triggerZoomEnd();
+            triggerPanEnd();
+            resolve(true);
+          }
+        });
       }
-    });
+    })
+
+    return p;
   }
 
   function scroll(x, y) {
@@ -911,12 +924,20 @@ function createPanZoom(domElement, options) {
 
     cancelAllAnimations();
 
-    zoomToAnimation = animate(from, to, {
-      step: function (v) {
-        zoomAbs(clientX, clientY, v.scale);
-      },
-      done: triggerZoomEnd
-    });
+    var p = new Promise((resolve, _) => {
+      zoomToAnimation = animate(from, to, {
+        step: function (v) {
+          zoomAbs(clientX, clientY, v.scale);
+        },
+        done: () => {
+          triggerZoomEnd();
+          triggerPanEnd();
+          resolve(true);
+        }
+      });
+    })
+
+    return p;
   }
 
   function smoothZoomAbs(clientX, clientY, toScaleValue) {
@@ -926,11 +947,20 @@ function createPanZoom(domElement, options) {
 
     cancelAllAnimations();
 
-    zoomToAnimation = animate(from, to, {
-      step: function (v) {
-        zoomAbs(clientX, clientY, v.scale);
-      }
-    });
+    var p = new Promise((resolve, _) => {
+      zoomToAnimation = animate(from, to, {
+        step: function (v) {
+          zoomAbs(clientX, clientY, v.scale);
+        },
+        done: () => {
+          triggerZoomEnd();
+          triggerPanEnd();
+          resolve(true);
+        }
+      });
+    })
+
+    return p;
   }
 
   function getTransformOriginOffset() {

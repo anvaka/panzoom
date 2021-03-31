@@ -145,7 +145,7 @@ function createPanZoom(domElement, options) {
   var initialY = typeof options.initialY === 'number' ? options.initialY : transform.y;
   var initialZoom = typeof options.initialZoom === 'number' ? options.initialZoom : transform.scale;
 
-  if(initialX != transform.x || initialY != transform.y || initialZoom != transform.Scale){
+  if(initialX != transform.x || initialY != transform.y || initialZoom != transform.scale){
     zoomAbs(initialX, initialY, initialZoom);
   }
 

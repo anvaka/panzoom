@@ -405,6 +405,21 @@ To pan in a smooth way use `smoothMoveTo(<number>,<number>)`:
 panzoom.smoothMoveTo(0, 0);
 ```
 
+
+## Triggering Zoom
+
+To Zoom the object using Javascript use `zoomTo(<number>,<number>,<number>)` function. It expects x, y value as coordinates of where to zoom. It also expects the zoom factor as the third argument. If zoom factor is greater than 1, apply zoom IN. If zoom factor is less than 1, apply zoom OUT.
+
+``` js
+panzoom.zoomTo(0, 0, 2);
+```
+
+To zoom in a smooth way use `smoothZoom(<number>,<number>,<number>)`:
+
+``` js
+panzoom.smoothZoom(0, 0, 0.5);
+```
+
 # license
 
 MIT

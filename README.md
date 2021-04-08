@@ -190,7 +190,7 @@ panzoom(element, {
 To get the current zoom (scale) level use the `getTransform()` method:
 
 ```
-console.log(panzoom.getTransform()); // prints {scale: 1.2, x: 10, y: 10}
+console.log(instance.getTransform()); // prints {scale: 1.2, x: 10, y: 10}
 ```
 
 ## Fixed transform origin when zooming
@@ -395,13 +395,13 @@ panzoom(element, {
 To Pan the object using Javascript use `moveTo(<number>,<number>)` function. It expects x, y value to where to move.
 
 ``` js
-panzoom.moveTo(0, 0);
+instance.moveTo(0, 0);
 ```
 
 To pan in a smooth way use `smoothMoveTo(<number>,<number>)`:
 
 ``` js
-panzoom.smoothMoveTo(0, 0);
+instance.smoothMoveTo(0, 0);
 ```
 
 
@@ -410,13 +410,13 @@ panzoom.smoothMoveTo(0, 0);
 To Zoom the object using Javascript use `zoomTo(<number>,<number>,<number>)` function. It expects x, y value as coordinates of where to zoom. It also expects the zoom factor as the third argument. If zoom factor is greater than 1, apply zoom IN. If zoom factor is less than 1, apply zoom OUT.
 
 ``` js
-panzoom.zoomTo(0, 0, 2);
+instance.zoomTo(0, 0, 2);
 ```
 
 To zoom in a smooth way use `smoothZoom(<number>,<number>,<number>)`:
 
 ``` js
-panzoom.smoothZoom(0, 0, 0.5);
+instance.smoothZoom(0, 0, 0.5);
 ```
 
 # license

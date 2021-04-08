@@ -146,7 +146,7 @@ function createPanZoom(domElement, options) {
   var initialY = typeof options.initialY === 'number' ? options.initialY : transform.y;
   var initialZoom = typeof options.initialZoom === 'number' ? options.initialZoom : transform.scale;
 
-  if(initialX != transform.x || initialY != transform.y || initialZoom != transform.Scale){
+  if(initialX != transform.x || initialY != transform.y || initialZoom != transform.scale){
     zoomAbs(initialX, initialY, initialZoom);
   }
 
@@ -442,7 +442,7 @@ function createPanZoom(domElement, options) {
   }
 
   function smoothMoveTo(x, y){
-    internalMoveBy(x - transform.x, y - transform.y, true)
+    internalMoveBy(x - transform.x, y - transform.y, true);
   }
 
   function internalMoveBy(dx, dy, smooth) {
@@ -1024,8 +1024,8 @@ function autoRun() {
   function collectOptions(script) {
     var attrs = script.attributes;
     var options = {};
-    for (var i = 0; i < attrs.length; ++i) {
-      var attr = attrs[i];
+    for (var j = 0; j < attrs.length; ++j) {
+      var attr = attrs[j];
       var nameValue = getPanzoomAttributeNameValue(attr);
       if (nameValue) {
         options[nameValue.name] = nameValue.value;
@@ -1102,14 +1102,14 @@ function disabled(e) {
 function noop() {}
 
 },{}],3:[function(require,module,exports){
-module.exports = makeDomController
+module.exports = makeDomController;
 
 module.exports.canAttach = isDomElement;
 
 function makeDomController(domElement, options) {
   var elementValid = isDomElement(domElement); 
   if (!elementValid) {
-    throw new Error('panzoom requires DOM element to be attached to the DOM tree')
+    throw new Error('panzoom requires DOM element to be attached to the DOM tree');
   }
 
   var owner = domElement.parentElement;
@@ -1123,12 +1123,12 @@ function makeDomController(domElement, options) {
     getBBox: getBBox,
     getOwner: getOwner,
     applyTransform: applyTransform,
-  }
+  };
   
-  return api
+  return api;
 
   function getOwner() {
-    return owner
+    return owner;
   }
 
   function getBBox() {
@@ -1138,7 +1138,7 @@ function makeDomController(domElement, options) {
       top: 0,
       width: domElement.clientWidth,
       height: domElement.clientHeight
-    }
+    };
   }
 
   function applyTransform(transform) {
@@ -1147,7 +1147,7 @@ function makeDomController(domElement, options) {
     domElement.style.transform = 'matrix(' +
       transform.scale + ', 0, 0, ' +
       transform.scale + ', ' +
-      transform.x + ', ' + transform.y + ')'
+      transform.x + ', ' + transform.y + ')';
   }
 }
 
@@ -1290,23 +1290,23 @@ function getRequestAnimationFrame() {
 
   return function (handler) {
     return setTimeout(handler, 16);
-  }
+  };
 }
 },{}],5:[function(require,module,exports){
-module.exports = makeSvgController
+module.exports = makeSvgController;
 module.exports.canAttach = isSVGElement;
 
 function makeSvgController(svgElement, options) {
   if (!isSVGElement(svgElement)) {
-    throw new Error('svg element is required for svg.panzoom to work')
+    throw new Error('svg element is required for svg.panzoom to work');
   }
 
-  var owner = svgElement.ownerSVGElement
+  var owner = svgElement.ownerSVGElement;
   if (!owner) {
     throw new Error(
       'Do not apply panzoom to the root <svg> element. ' +
       'Use its child instead (e.g. <g></g>). ' +
-      'As of March 2016 only FireFox supported transform on the root element')
+      'As of March 2016 only FireFox supported transform on the root element');
   }
 
   if (!options.disableKeyboardInteraction) {
@@ -1319,22 +1319,22 @@ function makeSvgController(svgElement, options) {
     getOwner: getOwner,
     applyTransform: applyTransform,
     initTransform: initTransform
-  }
+  };
   
-  return api
+  return api;
 
   function getOwner() {
-    return owner
+    return owner;
   }
 
   function getBBox() {
-    var bbox =  svgElement.getBBox()
+    var bbox =  svgElement.getBBox();
     return {
       left: bbox.x,
       top: bbox.y,
       width: bbox.width,
       height: bbox.height,
-    }
+    };
   }
 
   function getScreenCTM() {
@@ -1348,11 +1348,11 @@ function makeSvgController(svgElement, options) {
   }
 
   function initTransform(transform) {
-    var screenCTM = svgElement.getCTM()
+    var screenCTM = svgElement.getCTM();
 
     // The above line returns null on Firefox
     if (screenCTM === null) {
-      screenCTM = document.createElementNS("http://www.w3.org/2000/svg", "svg").createSVGMatrix()
+      screenCTM = document.createElementNS("http://www.w3.org/2000/svg", "svg").createSVGMatrix();
     }
 
     transform.x = screenCTM.e;
@@ -1365,7 +1365,7 @@ function makeSvgController(svgElement, options) {
     svgElement.setAttribute('transform', 'matrix(' +
       transform.scale + ' 0 0 ' +
       transform.scale + ' ' +
-      transform.x + ' ' + transform.y + ')')
+      transform.x + ' ' + transform.y + ')');
   }
 }
 

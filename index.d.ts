@@ -50,22 +50,23 @@ declare module "panzoom" {
     dispose: () => void;
     moveBy: (dx: number, dy: number, smooth: boolean) => void;
     moveTo: (x: number, y: number) => void;
-    smoothMoveTo: (x: number, y: number) => void;
-    centerOn: (ui: any) => void;
+    smoothMoveTo: (x: number, y: number) => Promise<boolean>;
+    centerOn: (ui: any) => Promise<boolean>;
     zoomTo: (clientX: number, clientY: number, scaleMultiplier: number) => void;
     zoomAbs: (clientX: number, clientY: number, zoomLevel: number) => void;
     smoothZoom: (
       clientX: number,
       clientY: number,
       scaleMultiplier: number
-    ) => void;
+    ) => Promise<boolean>;
     smoothZoomAbs: (
       clientX: number,
       clientY: number,
       toScaleValue: number
-    ) => void;
+    ) => Promise<boolean>;
     getTransform: () => Transform;
     showRectangle: (rect: ClientRect) => void;
+    smoothShowRectangle: (rect: ClientRect, duration: (from:ClientRect, to:ClientRect) => number) => Promise<boolean>;
     pause: () => void;
     resume: () => void;
     isPaused: () => boolean;

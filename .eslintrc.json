@@ -1,0 +1,18 @@
+
+{
+    "parserOptions": {
+        "ecmaVersion": 6,
+        "sourceType": "module"
+    },
+    "env": {
+      "browser": true,
+      "node": true,
+      "es6": true
+    },
+    "rules": {
+        "semi": "error",
+        "no-undef": "error",
+        "no-unused-vars": "error",
+        "no-shadow": "error"
+    }
+}

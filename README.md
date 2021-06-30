@@ -6,8 +6,7 @@ Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).
 
  * [Regular DOM object](https://anvaka.github.io/panzoom/demo/dom.html)
  * [Standalone page](https://anvaka.github.io/panzoom/demo/index.html) - this repository
- * [YASIV](http://www.yasiv.com/#/Search?q=algorithms&category=Books&lang=US) - my hobby project
- * [SVG Tiger](https://jsfiddle.net/uwxcmbyg/609/) - js fiddle
+ * [SVG Tiger](https://jsfiddle.net/anvaka/9twnb7zr/) - js fiddle
 
 # Usage
 
@@ -19,15 +18,15 @@ npm install panzoom --save
 
 Or download from CDN:
 
-```
-<script src='https://unpkg.com/panzoom@8.4.0/dist/panzoom.min.js'></script>
+``` html
+<script src='https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js'></script>
 ```
 
 If you download from CDN the library will be available under `panzoom` global name.
 
 ## Pan and zoom DOM subtree
 
-``` JS
+``` js
 // just grab a DOM element
 var element = document.querySelector('#scene')
 
@@ -61,7 +60,7 @@ var element = document.getElementById('scene')
 panzoom(element)
 ```
 
-If your use case requires dynamic behavior (i.e. you want to make a `element` not 
+If require a dynamic behavior (e.g. you want to make an `element` not 
 draggable anymore, or even completely delete an SVG element) make sure to call
 `dispose()` method:
 
@@ -133,6 +132,21 @@ See [JSFiddle](https://jsfiddle.net/Laxq9jLu/) for the demo. The tiger will be
 zoomable only when `Alt` key is down.
 
 
+## Ignore mouse down
+
+If you want to disable panning or filter it by pressing a specific key, use the
+`beforeMouseDown()` option. E.g.
+
+``` js
+panzoom(element, {
+  beforeMouseDown: function(e) {
+    // allow mouse-down panning only if altKey is down. Otherwise - ignore
+    var shouldIgnore = !e.altKey;
+    return shouldIgnore;
+  }
+});
+```
+
 ## Ignore keyboard events
 
 By default, panzoom will listen to keyboard events, so that users can navigate the scene
@@ -171,6 +185,58 @@ panzoom(element, {
 });
 ```
 
+## Get current transform (scale, offset)
+
+To get the current zoom (scale) level use the `getTransform()` method:
+
+```
+console.log(instance.getTransform()); // prints {scale: 1.2, x: 10, y: 10}
+```
+
+## Fixed transform origin when zooming
+
+By default when you use mouse wheel or pinch to zoom, `panzoom` uses mouse
+coordinates to determine the central point of the zooming operation.
+
+If you want to override this behavior and always zoom into `center` of the
+screen pass `transformOrigin` to the options:
+
+``` js
+panzoom(element, {
+  // now all zoom operations will happen based on the center of the screen
+  transformOrigin: {x: 0.5, y: 0.5}
+});
+```
+
+You specify `transformOrigin` as a pair of `{x, y}` coordinates. Here are some examples:
+
+``` js
+// some of the possible values:
+let topLeft = {x: 0, y: 0};
+let topRight = {x: 1, y: 0};
+let bottomLeft = {x: 0, y: 1};
+let bottomRight = {x: 1, y: 1};
+let centerCenter = {x: 0.5, y: 0.5};
+
+// now let's use it:
+panZoom(element, {
+  transformOrigin: centerCenter
+});
+```
+
+To get or set new transform origin use the following API:
+
+``` js
+let instance = panzoom(element, {
+  // now all zoom operations will happen based on the center of the screen
+  transformOrigin: {x: 0.5, y: 0.5}
+});
+
+let origin = instance.getTransformOrigin(); // {x: 0.5, y: 0.5}
+
+instance.setTransformOrigin({x: 0, y: 0}); // now it is topLeft
+instance.setTransformOrigin(null); // remove transform origin
+```
 
 ## Min Max Zoom
 
@@ -208,13 +274,13 @@ You can pause and resume the panzoom by calling the following methods:
 
 ``` js
 var element = document.getElementById('scene');
-var controller = panzoom(element);
+var instance = panzoom(element);
 
-controller.isPaused(); //  returns false
-controller.pause();    //  Pauses event handling
-controller.isPaused(); //  returns true now
-controller.resume();   //  Resume panzoom
-controller.isPaused(); //  returns false again
+instance.isPaused(); //  returns false
+instance.pause();    //  Pauses event handling
+instance.isPaused(); //  returns true now
+instance.resume();   //  Resume panzoom
+instance.isPaused(); //  returns false again
 ```
 
 ## Script attachment
@@ -227,7 +293,7 @@ If you want to quickly play with panzoom without using javascript, you can confi
 <!DOCTYPE html>
 <html>
 <head>
-  <script src='https://unpkg.com/panzoom@8.4.0/dist/panzoom.min.js'
+  <script src='https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js'
     query='#scene' name='pz'></script>
 </head>
 <body>
@@ -266,12 +332,11 @@ You can set the initial position and zoom, by chaining the `zoomAbs` function wi
 ``` js
 panzoom(element, {
   maxZoom: 1,
-  minZoom: 0.1
-}).zoomAbs(
-  300, // initial x position
-  500, // initial y position
-  0.1  // initial zoom 
-);
+  minZoom: 0.1,
+  initialX: 300,
+  initialY: 500,
+  initialZoom: 0.5
+});
 ```
 
 ## Handling touch events
@@ -327,10 +392,31 @@ panzoom(element, {
 
 ## Triggering Pan 
 
-To Pan the object using Javascript use `moveTo(<number>,<number>)` function . It expects x, y value to where  to move.
+To Pan the object using Javascript use `moveTo(<number>,<number>)` function. It expects x, y value to where to move.
 
 ``` js
-panzoom.moveTo(0, 0);
+instance.moveTo(0, 0);
+```
+
+To pan in a smooth way use `smoothMoveTo(<number>,<number>)`:
+
+``` js
+instance.smoothMoveTo(0, 0);
+```
+
+
+## Triggering Zoom
+
+To Zoom the object using Javascript use `zoomTo(<number>,<number>,<number>)` function. It expects x, y value as coordinates of where to zoom. It also expects the zoom factor as the third argument. If zoom factor is greater than 1, apply zoom IN. If zoom factor is less than 1, apply zoom OUT.
+
+``` js
+instance.zoomTo(0, 0, 2);
+```
+
+To zoom in a smooth way use `smoothZoom(<number>,<number>,<number>)`:
+
+``` js
+instance.smoothZoom(0, 0, 0.5);
 ```
 
 # license

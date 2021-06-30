@@ -6,29 +6,51 @@ declare module "panzoom" {
     bottom: number;
   }
 
+  export interface TransformOrigin {
+    x: number;
+    y: number;
+  }
+
+  export interface Transform {
+    x: number;
+    y: number;
+    scale: number;
+  }
+
+  export interface PanZoomController {
+    getOwner: () => Element;
+    applyTransform: (transform: Transform) => void;
+  }
+
   export interface PanZoomOptions {
     filterKey?: () => boolean;
     bounds?: boolean | Bounds;
-    realPinch?: boolean;
     maxZoom?: number;
     minZoom?: number;
     boundsPadding?: number;
     zoomDoubleClickSpeed?: number;
     zoomSpeed?: number;
+    initialX?: number,
+    initialY?: number,
+    initialZoom?: number,
     pinchSpeed?: number;
     beforeWheel?: (e: WheelEvent) => void;
+    beforeMouseDown?: (e: MouseEvent) => void;
     autocenter?: boolean;
     onTouch?: (e: TouchEvent) => void;
     onDoubleClick?: (e: Event) => void;
     smoothScroll?: boolean;
-    controller?: SVGElement | HTMLElement;
+    controller?: PanZoomController;
     enableTextSelection?: boolean;
+    disableKeyboardInteraction?: boolean;
+    transformOrigin?: TransformOrigin;
   }
 
   export interface PanZoom {
     dispose: () => void;
     moveBy: (dx: number, dy: number, smooth: boolean) => void;
     moveTo: (x: number, y: number) => void;
+    smoothMoveTo: (x: number, y: number) => void;
     centerOn: (ui: any) => void;
     zoomTo: (clientX: number, clientY: number, scaleMultiplier: number) => void;
     zoomAbs: (clientX: number, clientY: number, zoomLevel: number) => void;
@@ -42,11 +64,7 @@ declare module "panzoom" {
       clientY: number,
       toScaleValue: number
     ) => void;
-    getTransform: () => {
-      x: number;
-      y: number;
-      scale: number;
-    };
+    getTransform: () => Transform;
     showRectangle: (rect: ClientRect) => void;
     zoomToFit: (ui: any) => void;
     pause: () => void;
@@ -56,7 +74,13 @@ declare module "panzoom" {
     off: (eventName: string, handler: Function) => void;
     fire: (eventName: string) => void;
     getMinZoom: () => number;
+    setMinZoom: (newMinZoom: number) => number;
     getMaxZoom: () => number;
+    setMaxZoom: (newMaxZoom: number) => number;
+    getTransformOrigin: () => TransformOrigin;
+    setTransformOrigin: (newTransformOrigin: TransformOrigin) => void;
+    getZoomSpeed: () => number;
+    setZoomSpeed: (zoomSpeed: number) => void;
   }
 
   export default function createPanZoom(

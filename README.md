@@ -1,4 +1,4 @@
-# panzoom [![Build Status](https://travis-ci.org/anvaka/panzoom.svg)](https://travis-ci.org/anvaka/panzoom)
+# panzoom [![build status](https://github.com/anvaka/panzoom/actions/workflows/tests.yaml/badge.svg)](https://github.com/anvaka/panzoom/actions/workflows/tests.yaml)
 
 Extensible, mobile friendly pan and zoom framework (supports DOM and SVG).
 

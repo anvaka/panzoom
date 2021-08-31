@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>SVG Basic example of panzoom</title>
+  <!-- <script src='../dist/panzoom.js'></script> -->
+<script src='https://unpkg.com/panzoom@9.2.3/dist/panzoom.min.js'></script>
+
+</head>
+<body>
+  <svg>
+      <!-- this is the draggable root -->
+      <g id='scene'> 
+        <circle cx='10' cy='10' r='5' fill='pink'></circle>
+      </g>
+  </svg>
+  <a href='#' onclick="pause(event)">pause</a>
+  <a href='#' onclick="resume(event)">resume</a>
+  <script>
+  // grab the DOM SVG element that you want to be draggable/zoomable:
+  var element = document.getElementById('scene')
+
+  // and forward it it to panzoom.
+  var pz = panzoom(element)
+
+  function pause(e) {
+    e.preventDefault();
+    pz.pause();
+  }
+  function resume(e) {
+    e.preventDefault();
+    pz.resume();
+  }
+  </script>
+</body>
+</html>

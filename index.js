@@ -66,6 +66,7 @@ function createPanZoom(domElement, options) {
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed;
   var beforeWheel = options.beforeWheel || noop;
   var beforeMouseDown = options.beforeMouseDown || noop;
+  var beforeTouchDown = options.beforeTouchDown || noop;
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed;
   var transformOrigin = parseTransformOrigin(options.transformOrigin);
   var textSelection = options.enableTextSelection ? fakeTextSelectorInterceptor : domTextSelectionInterceptor;
@@ -581,6 +582,8 @@ function createPanZoom(domElement, options) {
   function onTouch(e) {
     // let the override the touch behavior
     beforeTouch(e);
+
+    if(beforeTouchDown(e)) return false;
 
     if (e.touches.length === 1) {
       return handleSingleFingerTouch(e, e.touches[0]);

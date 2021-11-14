@@ -2,7 +2,6 @@
 /**
  * Allows to drag and zoom svg elements
  */
-var wheel = require('wheel');
 var animate = require('amator');
 var eventify = require('ngraph.events');
 var kinetic = require('./lib/kinetic.js');
@@ -483,13 +482,13 @@ function createPanZoom(domElement, options) {
 
     // Need to listen on the owner container, so that we are not limited
     // by the size of the scrollable domElement
-    wheel.addWheelListener(owner, onMouseWheel, { passive: false });
+    owner.addEventListener('wheel', onMouseWheel, { passive: false });
 
     makeDirty();
   }
 
   function releaseEvents() {
-    wheel.removeWheelListener(owner, onMouseWheel);
+    owner.removeEventListener('wheel', onMouseWheel);
     owner.removeEventListener('mousedown', onMouseDown);
     owner.removeEventListener('keydown', onKeyDown);
     owner.removeEventListener('dblclick', onDoubleClick);

@@ -51,6 +51,7 @@ declare module "panzoom" {
     enableTextSelection?: boolean;
     disableKeyboardInteraction?: boolean;
     transformOrigin?: TransformOrigin;
+    panButton?: 'left' | 'middle';
   }
 
   export interface PanZoom {

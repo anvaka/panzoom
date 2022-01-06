@@ -451,6 +451,7 @@ function createPanZoom(domElement, options) {
     }
 
     if (moveByAnimation) moveByAnimation.cancel();
+    smoothScroll.cancel();
 
     var from = { x: 0, y: 0 };
     var to = { x: dx, y: dy };

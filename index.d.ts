@@ -39,6 +39,13 @@ declare module "panzoom" {
     autocenter?: boolean;
     onTouch?: (e: TouchEvent) => void;
     onDoubleClick?: (e: Event) => void;
+
+    /**
+     * Called after user "clicks" with a single tap or mouse button. 
+     * The event comes a bit later after a tap, to allow for double
+     * tap disambiguation.
+     */
+    onClick?: (e: Event) => void;
     smoothScroll?: boolean;
     controller?: PanZoomController;
     enableTextSelection?: boolean;

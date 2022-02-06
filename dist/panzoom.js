@@ -94,6 +94,11 @@ function createPanZoom(domElement, options) {
   var mouseX;
   var mouseY;
 
+  // Where the first click has happened, so that we can differentiate
+  // between pan and click
+  var clickX;
+  var clickY;
+
   var pinchZoomLength;
 
   var smoothScroll;
@@ -633,6 +638,8 @@ function createPanZoom(domElement, options) {
     var point = transformToScreen(offset.x, offset.y);
     mouseX = point.x;
     mouseY = point.y;
+    clickX = mouseX;
+    clickY = mouseY;
 
     smoothScroll.cancel();
     startTouchListenerIfNeeded();
@@ -709,6 +716,10 @@ function createPanZoom(domElement, options) {
     // and then notify:
     if (!options.onClick) return;
     clearPendingClickEventTimeout();
+    var dx = mouseX - clickX;
+    var dy = mouseY - clickY;
+    var l = Math.sqrt(dx * dx + dy * dy);
+    if (l > 5) return; // probably they are panning, ignore it
 
     pendingClickEventTimeout = setTimeout(function() {
       pendingClickEventTimeout = 0;
@@ -787,8 +798,8 @@ function createPanZoom(domElement, options) {
 
     var offset = getOffsetXY(e);
     var point = transformToScreen(offset.x, offset.y);
-    mouseX = point.x;
-    mouseY = point.y;
+    clickX = mouseX = point.x;
+    clickY = mouseY = point.y;
 
     // We need to listen on document itself, since mouse can go outside of the
     // window, and we will loose it

@@ -23,6 +23,7 @@
 
   // and forward it it to panzoom.
   var pz = panzoom(element, {
+    autocenter: true,
     onClick(e) {
       document.getElementById('log').innerText = 'Clicked! Event target is: ' + e.target;
     }

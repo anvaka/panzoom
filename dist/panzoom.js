@@ -17,6 +17,7 @@ var makeDomController = require('./lib/domController.js');
 var defaultZoomSpeed = 1;
 var defaultDoubleTapZoomSpeed = 1.75;
 var doubleTapSpeedInMS = 300;
+var clickEventTimeInMS = 200;
 
 module.exports = createPanZoom;
 
@@ -79,6 +80,10 @@ function createPanZoom(domElement, options) {
 
   var frameAnimation;
   var lastTouchEndTime = 0;
+  var lastTouchStartTime = 0;
+  var pendingClickEventTimeout = 0;
+  var lastMouseDownedEvent = null;
+  var lastMouseDownTime = new Date();
   var lastSingleFingerOffset;
   var touchInProgress = false;
 
@@ -88,6 +93,11 @@ function createPanZoom(domElement, options) {
   // cache mouse coordinates here
   var mouseX;
   var mouseY;
+
+  // Where the first click has happened, so that we can differentiate
+  // between pan and click
+  var clickX;
+  var clickY;
 
   var pinchZoomLength;
 
@@ -580,8 +590,9 @@ function createPanZoom(domElement, options) {
   }
 
   function onTouch(e) {
-    // let the override the touch behavior
+    // let them override the touch behavior
     beforeTouch(e);
+    clearPendingClickEventTimeout();
 
     if (e.touches.length === 1) {
       return handleSingleFingerTouch(e, e.touches[0]);
@@ -606,6 +617,8 @@ function createPanZoom(domElement, options) {
   }
 
   function beforeDoubleClick(e) {
+    clearPendingClickEventTimeout();
+
     // TODO: Need to unify this filtering names. E.g. use `beforeDoubleClick``
     if (options.onDoubleClick && !options.onDoubleClick(e)) {
       // if they return `false` from onTouch, we don't want to stop
@@ -618,12 +631,15 @@ function createPanZoom(domElement, options) {
   }
 
   function handleSingleFingerTouch(e) {
+    lastTouchStartTime = new Date();
     var touch = e.touches[0];
     var offset = getOffsetXY(touch);
     lastSingleFingerOffset = offset;
     var point = transformToScreen(offset.x, offset.y);
     mouseX = point.x;
     mouseY = point.y;
+    clickX = mouseX;
+    clickY = mouseY;
 
     smoothScroll.cancel();
     startTouchListenerIfNeeded();
@@ -688,7 +704,31 @@ function createPanZoom(domElement, options) {
     }
   }
 
+  function clearPendingClickEventTimeout() {
+    if (pendingClickEventTimeout) {
+      clearTimeout(pendingClickEventTimeout);
+      pendingClickEventTimeout = 0;
+    }
+  }
+
+  function handlePotentialClickEvent(e) {
+    // we could still be in the double tap mode, let's wait until double tap expires,
+    // and then notify:
+    if (!options.onClick) return;
+    clearPendingClickEventTimeout();
+    var dx = mouseX - clickX;
+    var dy = mouseY - clickY;
+    var l = Math.sqrt(dx * dx + dy * dy);
+    if (l > 5) return; // probably they are panning, ignore it
+
+    pendingClickEventTimeout = setTimeout(function() {
+      pendingClickEventTimeout = 0;
+      options.onClick(e);
+    }, doubleTapSpeedInMS);
+  }
+
   function handleTouchEnd(e) {
+    clearPendingClickEventTimeout();
     if (e.touches.length > 0) {
       var offset = getOffsetXY(e.touches[0]);
       var point = transformToScreen(offset.x, offset.y);
@@ -697,6 +737,7 @@ function createPanZoom(domElement, options) {
     } else {
       var now = new Date();
       if (now - lastTouchEndTime < doubleTapSpeedInMS) {
+        // They did a double tap here
         if (transformOrigin) {
           var offset = getTransformOriginOffset();
           smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed);
@@ -704,6 +745,8 @@ function createPanZoom(domElement, options) {
           // We want untransformed x/y here.
           smoothZoom(lastSingleFingerOffset.x, lastSingleFingerOffset.y, zoomDoubleClickSpeed);
         }
+      } else if (now - lastTouchStartTime < clickEventTimeInMS) {
+        handlePotentialClickEvent(e);
       }
 
       lastTouchEndTime = now;
@@ -731,8 +774,13 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseDown(e) {
+    clearPendingClickEventTimeout();
+
     // if client does not want to handle this event - just ignore the call
     if (beforeMouseDown(e)) return;
+
+    lastMouseDownedEvent = e;
+    lastMouseDownTime = new Date();
 
     if (touchInProgress) {
       // modern browsers will fire mousedown for touch events too
@@ -750,8 +798,8 @@ function createPanZoom(domElement, options) {
 
     var offset = getOffsetXY(e);
     var point = transformToScreen(offset.x, offset.y);
-    mouseX = point.x;
-    mouseY = point.y;
+    clickX = mouseX = point.x;
+    clickY = mouseY = point.y;
 
     // We need to listen on document itself, since mouse can go outside of the
     // window, and we will loose it
@@ -780,6 +828,8 @@ function createPanZoom(domElement, options) {
   }
 
   function onMouseUp() {
+    var now = new Date();
+    if (now - lastMouseDownTime < clickEventTimeInMS) handlePotentialClickEvent(lastMouseDownedEvent);
     textSelection.release();
     triggerPanEnd();
     releaseDocumentMouse();

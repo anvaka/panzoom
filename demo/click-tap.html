@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Handling clicks and taps from the scene</title>
+  <!-- <script src='../dist/panzoom.js'></script> -->
+<script src='../dist/panzoom.js'></script>
+
+</head>
+<body>
+  <p id='log'>Click anywhere on the scene</p>
+  <svg>
+      <!-- this is the draggable root -->
+      <g id='scene'> 
+        <circle cx='10' cy='10' r='5' fill='pink'></circle>
+      </g>
+  </svg>
+  <script>
+  // grab the DOM SVG element that you want to be draggable/zoomable:
+  var element = document.getElementById('scene')
+
+  // and forward it it to panzoom.
+  var pz = panzoom(element, {
+    autocenter: true,
+    onClick(e) {
+      document.getElementById('log').innerText = 'Clicked! Event target is: ' + e.target;
+    }
+  })
+  </script>
+</body>
+</html>

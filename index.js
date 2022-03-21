@@ -112,6 +112,7 @@ function createPanZoom(domElement, options) {
 
   var moveByAnimation;
   var zoomToAnimation;
+  var showRectangleAnimation;
 
   var multiTouch;
   var paused = false;
@@ -129,6 +130,7 @@ function createPanZoom(domElement, options) {
     smoothZoom: smoothZoom,
     smoothZoomAbs: smoothZoomAbs,
     showRectangle: showRectangle,
+    smoothShowRectangle: publicSmoothShowRectangle,
 
     pause: pause,
     resume: resume,
@@ -178,7 +180,17 @@ function createPanZoom(domElement, options) {
   }
 
   function showRectangle(rect) {
-    // TODO: this duplicates autocenter. I think autocenter should go.
+    cancelAllAnimations();
+    internalShowRectangle(rect);
+  }
+
+  function internalShowRectangle(rect) {
+    var newTransform = clientRectToTransform(rect);
+
+    setTransform(newTransform);
+  }
+
+  function clientRectToTransform(rect) {
     var clientRect = owner.getBoundingClientRect();
     var size = transformToScreen(clientRect.width, clientRect.height);
 
@@ -191,9 +203,72 @@ function createPanZoom(domElement, options) {
     var dw = size.x / rectWidth;
     var dh = size.y / rectHeight;
     var scale = Math.min(dw, dh);
-    transform.x = -(rect.left + rectWidth / 2) * scale + size.x / 2;
-    transform.y = -(rect.top + rectHeight / 2) * scale + size.y / 2;
-    transform.scale = scale;
+
+    var newTransform = new Transform();
+    newTransform.x = -(rect.left + rectWidth / 2) * scale + size.x / 2;
+    newTransform.y = -(rect.top + rectHeight / 2) * scale + size.y / 2;
+    newTransform.scale = scale;
+
+    return newTransform;
+  }
+
+  function setTransform(newTransform) {
+    transform.x = newTransform.x;
+    transform.y = newTransform.y;
+    transform.scale = newTransform.scale;
+
+    triggerEvent('pan');
+    triggerEvent('zoom');
+    makeDirty();
+  }
+
+  function publicSmoothShowRectangle(rect, duration = undefined) {
+    cancelAllAnimations();
+
+    var to = rect;
+    // get rect from current transform
+    var from = transformToClientRect(transform);
+
+    // default duration is 600ms
+    var dur = 600;
+    if (typeof duration === 'function') {
+      // let consumer calculate a duration based on the new and current transform
+      dur = duration(from, to);
+    }
+
+    var p = new Promise((resolve, _) => {
+      showRectangleAnimation = animate(from, to, {
+        duration: dur,
+        step: function (nextTransform) {
+          internalShowRectangle(nextTransform);
+        },
+        done: () => {
+          triggerZoomEnd();
+          triggerPanEnd();
+          resolve(true);
+        }
+      });
+    })
+
+    return p;
+  }
+
+  // should this be made public?
+  function transformToClientRect(transform) {
+    var clientRect = owner.getBoundingClientRect();
+    var size = transformToScreen(clientRect.width, clientRect.height);
+
+    var w = size.x / transform.scale;
+    var h = size.y / transform.scale;
+    var l = transform.x / -transform.scale;
+    var t = transform.y / -transform.scale;
+
+    return {
+      top: t,
+      left: l,
+      bottom: t + h,
+      right: l + w,
+    };
   }
 
   function transformToScreen(x, y) {
@@ -447,37 +522,50 @@ function createPanZoom(domElement, options) {
     var dx = container.width / 2 - cx;
     var dy = container.height / 2 - cy;
 
-    internalMoveBy(dx, dy, true);
+    return internalMoveBy(dx, dy, true);
   }
 
   function smoothMoveTo(x, y){
-    internalMoveBy(x - transform.x, y - transform.y, true);
+    return internalMoveBy(x - transform.x, y - transform.y, true);
   }
 
   function internalMoveBy(dx, dy, smooth) {
-    if (!smooth) {
-      return moveBy(dx, dy);
-    }
+    var p = new Promise((resolve, _) => {
+      cancelAllAnimations();
 
-    if (moveByAnimation) moveByAnimation.cancel();
+      if (!smooth) {
+        moveBy(dx, dy);
 
-    var from = { x: 0, y: 0 };
-    var to = { x: dx, y: dy };
-    var lastX = 0;
-    var lastY = 0;
+        triggerZoomEnd();
+        triggerPanEnd();
+        resolve(true);
+      } else { 
+        var from = { x: 0, y: 0 };
+        var to = { x: dx, y: dy };
+        var lastX = 0;
+        var lastY = 0;
 
-    moveByAnimation = animate(from, to, {
-      step: function (v) {
-        moveBy(v.x - lastX, v.y - lastY);
-
-        lastX = v.x;
-        lastY = v.y;
+        moveByAnimation = animate(from, to, {
+          step: function (v) {
+            moveBy(v.x - lastX, v.y - lastY);
+    
+            lastX = v.x;
+            lastY = v.y;
+          },
+          done: () => {
+            triggerZoomEnd();
+            triggerPanEnd();
+            resolve(true);
+          }
+        });
       }
-    });
+    })
+
+    return p;
   }
 
   function scroll(x, y) {
-    cancelZoomAnimation();
+    cancelAllAnimations();
     moveTo(x, y);
   }
 
@@ -510,7 +598,7 @@ function createPanZoom(domElement, options) {
       frameAnimation = 0;
     }
 
-    smoothScroll.cancel();
+    cancelAllAnimations();
 
     releaseDocumentMouse();
     releaseTouches();
@@ -640,7 +728,7 @@ function createPanZoom(domElement, options) {
     clickX = mouseX;
     clickY = mouseY;
 
-    smoothScroll.cancel();
+    cancelAllAnimations();
     startTouchListenerIfNeeded();
   }
 
@@ -793,7 +881,7 @@ function createPanZoom(domElement, options) {
       (e.button === 1 && window.event !== null) || e.button === 0;
     if (!isLeftButton) return;
 
-    smoothScroll.cancel();
+    cancelAllAnimations();
 
     var offset = getOffsetXY(e);
     var point = transformToScreen(offset.x, offset.y);
@@ -853,7 +941,7 @@ function createPanZoom(domElement, options) {
     // if client does not want to handle this event - just ignore the call
     if (beforeWheel(e)) return;
 
-    smoothScroll.cancel();
+    cancelAllAnimations();
 
     var delta = e.deltaY;
     if (e.deltaMode > 0) delta *= 100;
@@ -884,15 +972,22 @@ function createPanZoom(domElement, options) {
     var from = { scale: fromValue };
     var to = { scale: scaleMultiplier * fromValue };
 
-    smoothScroll.cancel();
-    cancelZoomAnimation();
+    cancelAllAnimations();
 
-    zoomToAnimation = animate(from, to, {
-      step: function (v) {
-        zoomAbs(clientX, clientY, v.scale);
-      },
-      done: triggerZoomEnd
-    });
+    var p = new Promise((resolve, _) => {
+      zoomToAnimation = animate(from, to, {
+        step: function (v) {
+          zoomAbs(clientX, clientY, v.scale);
+        },
+        done: () => {
+          triggerZoomEnd();
+          triggerPanEnd();
+          resolve(true);
+        }
+      });
+    })
+
+    return p;
   }
 
   function smoothZoomAbs(clientX, clientY, toScaleValue) {
@@ -900,14 +995,22 @@ function createPanZoom(domElement, options) {
     var from = { scale: fromValue };
     var to = { scale: toScaleValue };
 
-    smoothScroll.cancel();
-    cancelZoomAnimation();
+    cancelAllAnimations();
 
-    zoomToAnimation = animate(from, to, {
-      step: function (v) {
-        zoomAbs(clientX, clientY, v.scale);
-      }
-    });
+    var p = new Promise((resolve, _) => {
+      zoomToAnimation = animate(from, to, {
+        step: function (v) {
+          zoomAbs(clientX, clientY, v.scale);
+        },
+        done: () => {
+          triggerZoomEnd();
+          triggerPanEnd();
+          resolve(true);
+        }
+      });
+    })
+
+    return p;
   }
 
   function getTransformOriginOffset() {
@@ -919,15 +1022,39 @@ function createPanZoom(domElement, options) {
   }
 
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
-    smoothScroll.cancel();
-    cancelZoomAnimation();
+    cancelAllAnimations();
     return zoomByRatio(clientX, clientY, scaleMultiplier);
+  }
+
+  function cancelAllAnimations() {
+    cancelShowRectangleAnimation();
+    cancelZoomAnimation();
+    cancelMoveByAnimation();
+    cancelSmoothScroll();
   }
 
   function cancelZoomAnimation() {
     if (zoomToAnimation) {
       zoomToAnimation.cancel();
       zoomToAnimation = null;
+    }
+  }
+
+  function cancelSmoothScroll() {
+    smoothScroll.cancel();
+  }
+
+  function cancelMoveByAnimation() {
+    if (moveByAnimation)  {
+      moveByAnimation.cancel();
+      moveByAnimation = null;
+    }
+  }
+
+  function cancelShowRectangleAnimation() {
+    if (showRectangleAnimation) {
+      showRectangleAnimation.cancel();
+      showRectangleAnimation = null;
     }
   }
 

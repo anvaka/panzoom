@@ -419,6 +419,51 @@ To zoom in a smooth way use `smoothZoom(<number>,<number>,<number>)`:
 instance.smoothZoom(0, 0, 0.5);
 ```
 
+To pan and zoom to a specific in dom/svg coordinate use:
+
+``` js
+rect =  {
+  top: 10,
+  left: 20,
+  bottom: 30,
+  right: 40,
+};
+
+panzoom.showRectangle(rect);
+```
+
+to do this in a smooth fashion do
+
+``` js
+panzoom.smoothShowRectangle(rect);
+```
+you can also give a function that gets the current rect and the target rect to determine the duration of the animation, like:
+
+``` js
+panzoom.smoothShowRectangle(rect, (from, to) => {
+  var distance = Math.sqrt(
+    Math.pow(from.top - to.top, 2)
+    + Math.pow(from.right - to.right, 2)
+    + Math.pow(from.bottom - to.bottom, 2)
+    + Math.pow(from.left - to.left, 2)
+  );
+
+  var exp_diff = Math.exp(distance / 1000);
+  var sigmoid = (exp_diff * 1000) / (exp_diff + 1);
+
+  return sigmoid;
+})
+```
+
+Further more: the `smoothShowRectangle` return a promise, so that the caller can act on the completion of the animation.
+
+``` js
+panzoom.smoothShowRectangle(rect)
+  .then(() => {
+    console.log("animation complete");
+  });
+```
+
 # license
 
 MIT

@@ -419,6 +419,15 @@ To zoom in a smooth way use `smoothZoom(<number>,<number>,<number>)`:
 instance.smoothZoom(0, 0, 0.5);
 ```
 
+## Custom UI to trigger zoom
+
+One of the common use case is to have a custom UI to trigger zoom. For example, you can use a button to zoom in/out.
+Since this library does not depend on any popular framework (react, vue, etc.) you can implement it yourself
+following this example:
+
+* [Live demo](https://anvaka.github.io/panzoom/demo/buttons.html)
+* [Source code of the demo](https://github.com/anvaka/panzoom/blob/3731bff2e15f2b4299405c2a59a24f30c3549a17/demo/buttons.html#L851)
+
 # license
 
 MIT

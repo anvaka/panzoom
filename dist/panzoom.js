@@ -7,12 +7,12 @@ var wheel = require('wheel');
 var animate = require('amator');
 var eventify = require('ngraph.events');
 var kinetic = require('./lib/kinetic.js');
-var createTextSelectionInterceptor = require('./lib/createTextSelectionInterceptor.js');
+var createTextSelectionInterceptor = require('./lib/makeTextSelectionInterceptor.js');
 var domTextSelectionInterceptor = createTextSelectionInterceptor();
 var fakeTextSelectorInterceptor = createTextSelectionInterceptor(true);
 var Transform = require('./lib/transform.js');
-var makeSvgController = require('./lib/svgController.js');
-var makeDomController = require('./lib/domController.js');
+var makeSvgController = require('./lib/makeSvgController.js');
+var makeDomController = require('./lib/makeDomController.js');
 
 var defaultZoomSpeed = 1;
 var defaultDoubleTapZoomSpeed = 1.75;
@@ -1100,112 +1100,7 @@ function autoRun() {
 
 autoRun();
 	
-},{"./lib/createTextSelectionInterceptor.js":2,"./lib/domController.js":3,"./lib/kinetic.js":4,"./lib/svgController.js":5,"./lib/transform.js":6,"amator":7,"ngraph.events":9,"wheel":10}],2:[function(require,module,exports){
-/**
- * Disallows selecting text.
- */
-module.exports = createTextSelectionInterceptor;
-
-function createTextSelectionInterceptor(useFake) {
-  if (useFake) {
-    return {
-      capture: noop,
-      release: noop
-    };
-  }
-
-  var dragObject;
-  var prevSelectStart;
-  var prevDragStart;
-  var wasCaptured = false;
-
-  return {
-    capture: capture,
-    release: release
-  };
-
-  function capture(domObject) {
-    wasCaptured = true;
-    prevSelectStart = window.document.onselectstart;
-    prevDragStart = window.document.ondragstart;
-
-    window.document.onselectstart = disabled;
-
-    dragObject = domObject;
-    dragObject.ondragstart = disabled;
-  }
-
-  function release() {
-    if (!wasCaptured) return;
-    
-    wasCaptured = false;
-    window.document.onselectstart = prevSelectStart;
-    if (dragObject) dragObject.ondragstart = prevDragStart;
-  }
-}
-
-function disabled(e) {
-  e.stopPropagation();
-  return false;
-}
-
-function noop() {}
-
-},{}],3:[function(require,module,exports){
-module.exports = makeDomController;
-
-module.exports.canAttach = isDomElement;
-
-function makeDomController(domElement, options) {
-  var elementValid = isDomElement(domElement); 
-  if (!elementValid) {
-    throw new Error('panzoom requires DOM element to be attached to the DOM tree');
-  }
-
-  var owner = domElement.parentElement;
-  domElement.scrollTop = 0;
-  
-  if (!options.disableKeyboardInteraction) {
-    owner.setAttribute('tabindex', 0);
-  }
-
-  var api = {
-    getBBox: getBBox,
-    getOwner: getOwner,
-    applyTransform: applyTransform,
-  };
-  
-  return api;
-
-  function getOwner() {
-    return owner;
-  }
-
-  function getBBox() {
-    // TODO: We should probably cache this?
-    return  {
-      left: 0,
-      top: 0,
-      width: domElement.clientWidth,
-      height: domElement.clientHeight
-    };
-  }
-
-  function applyTransform(transform) {
-    // TODO: Should we cache this?
-    domElement.style.transformOrigin = '0 0 0';
-    domElement.style.transform = 'matrix(' +
-      transform.scale + ', 0, 0, ' +
-      transform.scale + ', ' +
-      transform.x + ', ' + transform.y + ')';
-  }
-}
-
-function isDomElement(element) {
-  return element && element.parentElement && element.style;
-}
-
-},{}],4:[function(require,module,exports){
+},{"./lib/kinetic.js":2,"./lib/makeDomController.js":3,"./lib/makeSvgController.js":4,"./lib/makeTextSelectionInterceptor.js":5,"./lib/transform.js":6,"amator":7,"ngraph.events":9,"wheel":10}],2:[function(require,module,exports){
 /**
  * Allows smooth kinetic scrolling of the surface
  */
@@ -1342,7 +1237,61 @@ function getRequestAnimationFrame() {
     return setTimeout(handler, 16);
   };
 }
-},{}],5:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
+module.exports = makeDomController;
+
+module.exports.canAttach = isDomElement;
+
+function makeDomController(domElement, options) {
+  var elementValid = isDomElement(domElement); 
+  if (!elementValid) {
+    throw new Error('panzoom requires DOM element to be attached to the DOM tree');
+  }
+
+  var owner = domElement.parentElement;
+  domElement.scrollTop = 0;
+  
+  if (!options.disableKeyboardInteraction) {
+    owner.setAttribute('tabindex', 0);
+  }
+
+  var api = {
+    getBBox: getBBox,
+    getOwner: getOwner,
+    applyTransform: applyTransform,
+  };
+  
+  return api;
+
+  function getOwner() {
+    return owner;
+  }
+
+  function getBBox() {
+    // TODO: We should probably cache this?
+    return  {
+      left: 0,
+      top: 0,
+      width: domElement.clientWidth,
+      height: domElement.clientHeight
+    };
+  }
+
+  function applyTransform(transform) {
+    // TODO: Should we cache this?
+    domElement.style.transformOrigin = '0 0 0';
+    domElement.style.transform = 'matrix(' +
+      transform.scale + ', 0, 0, ' +
+      transform.scale + ', ' +
+      transform.x + ', ' + transform.y + ')';
+  }
+}
+
+function isDomElement(element) {
+  return element && element.parentElement && element.style;
+}
+
+},{}],4:[function(require,module,exports){
 module.exports = makeSvgController;
 module.exports.canAttach = isSVGElement;
 
@@ -1422,6 +1371,57 @@ function makeSvgController(svgElement, options) {
 function isSVGElement(element) {
   return element && element.ownerSVGElement && element.getCTM;
 }
+},{}],5:[function(require,module,exports){
+/**
+ * Disallows selecting text.
+ */
+module.exports = makeTextSelectionInterceptor;
+
+function makeTextSelectionInterceptor(useFake) {
+  if (useFake) {
+    return {
+      capture: noop,
+      release: noop
+    };
+  }
+
+  var dragObject;
+  var prevSelectStart;
+  var prevDragStart;
+  var wasCaptured = false;
+
+  return {
+    capture: capture,
+    release: release
+  };
+
+  function capture(domObject) {
+    wasCaptured = true;
+    prevSelectStart = window.document.onselectstart;
+    prevDragStart = window.document.ondragstart;
+
+    window.document.onselectstart = disabled;
+
+    dragObject = domObject;
+    dragObject.ondragstart = disabled;
+  }
+
+  function release() {
+    if (!wasCaptured) return;
+    
+    wasCaptured = false;
+    window.document.onselectstart = prevSelectStart;
+    if (dragObject) dragObject.ondragstart = prevDragStart;
+  }
+}
+
+function disabled(e) {
+  e.stopPropagation();
+  return false;
+}
+
+function noop() {}
+
 },{}],6:[function(require,module,exports){
 module.exports = Transform;
 

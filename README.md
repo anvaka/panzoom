@@ -135,7 +135,8 @@ zoomable only when `Alt` key is down.
 ## Ignore mouse down
 
 If you want to disable panning or filter it by pressing a specific key, use the
-`beforeMouseDown()` option. E.g.
+`beforeMouseDown()` option. Note that it only works when the mouse initiates
+the panning. E.g.
 
 ``` js
 panzoom(element, {

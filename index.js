@@ -624,8 +624,10 @@ function createPanZoom(domElement, options) {
 
     // TODO: Should I allow to cancel this?
     let tt = Object.assign({},transform)
-    tt.scaleX *= scaleFactors.x
-    tt.scaleY = scaleFactors.y === 0 ? 1.0 : scaleFactors.y
+    if ( !linkAspect ) {
+      tt.scaleX *= scaleFactors.x === 0 ? 1.0 : scaleFactors.x
+      tt.scaleY = scaleFactors.y === 0 ? 1.0 : scaleFactors.y
+    }
     panController.applyTransform(tt,linkAspect);
 
     triggerEvent('transform');

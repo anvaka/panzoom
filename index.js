@@ -522,8 +522,8 @@ function createPanZoom(domElement, options) {
       zoomByRatio(clientX, clientY, ratio);
     } else {
       let r_pair = {
-        x : ratio = (zoomLevel / transform.scaleX),
-        y : ratio = (zoomLevel / transform.scaleY)
+        x : (zoomLevel / transform.scaleX),
+        y : (zoomLevel / transform.scaleY)
       }
       zoomByRatio(clientX, clientY, r_pair);
     }

@@ -118,6 +118,9 @@ function createPanZoom(domElement, options) {
   } else {
     // otherwise we use forward smoothScroll settings to kinetic API
     // which makes scroll smoothing.
+    if ( options.smoothScroll.reactZeroVelocity ) {
+      options.smoothScroll.callWhenMotionStops = triggerDecelerateToZero
+    }
     smoothScroll = kinetic(getPoint, scroll, options.smoothScroll);
   }
 
@@ -211,13 +214,13 @@ function createPanZoom(domElement, options) {
     if ( linkAspect ) {
       transform.x = -(rect.left + rectWidth / 2) * scale + size.x / 2;
       transform.y = -(rect.top + rectHeight / 2) * scale + size.y / 2;
+      transform.scale = scale;
     } else {
       transform.x = (-(rect.left + rectWidth / 2) * scaleX * scaleFactors.x) + size.x / 2;
       transform.y = (-(rect.top + rectHeight / 2) * scaleY * scaleFactors.y) + size.y / 2;
+      transform.scaleX = scaleX * (scaleFactors.x === 0 ? 1.0 : scaleFactors.x)
+      transform.scaleY = scaleY * (scaleFactors.y === 0 ? 1.0 : scaleFactors.y)
     }
-    transform.scale = scale;
-    transform.scaleX = scaleX
-    transform.scaleY = scaleY
   }
 
 
@@ -404,11 +407,13 @@ function createPanZoom(domElement, options) {
         bottom: bbox.height * transform.scale + leftTop.y
       };  
     } else {
+      let scx = scaleFactors.x ? scaleFactors.x : 1.0
+      let scy = scaleFactors.y ? scaleFactors.y : 1.0
       return {
         left: leftTop.x,
         top: leftTop.y,
-        right: (bbox.width * transform.scaleX * scaleFactors.x) + leftTop.x,
-        bottom: (bbox.height * transform.scaleY * scaleFactors.y) + leftTop.y
+        right: (bbox.width * transform.scaleX * scx) + leftTop.x,
+        bottom: (bbox.height * transform.scaleY * scy) + leftTop.y
       };
     }
   }
@@ -420,9 +425,11 @@ function createPanZoom(domElement, options) {
         y: y * transform.scale + transform.y
       };
     } else {
+      let scx = scaleFactors.x ? scaleFactors.x : 1.0
+      let scy = scaleFactors.y ? scaleFactors.y : 1.0
       return {
-        x: (x * transform.scaleX * scaleFactors.x) + transform.x,
-        y: (y * transform.scaleY * scaleFactors.x) + transform.y
+        x: (x * transform.scaleX * scx) + transform.x,
+        y: (y * transform.scaleY * scy) + transform.y
       };
     }
   }
@@ -466,7 +473,10 @@ function createPanZoom(domElement, options) {
         if (!transformAdjusted) transform.scale *= ratio;
       }
     } else {
-      if ( (typeof ratio !== "object") || isNaN(ratio.x) || isNaN(ratio.y) ) {
+      
+      if ( (typeof ratio === "number") ) {
+        ratio = { x : ratio, y : ratio } 
+      } else if ( (typeof ratio !== "object") || isNaN(ratio.x) || isNaN(ratio.y) ) {
         throw new Error('zoom (no aspect) requires valid numbers in x,y pair');
       }
 
@@ -497,15 +507,17 @@ function createPanZoom(domElement, options) {
       transform.y = size.y - ratio.y * (size.y - transform.y) * scaleFactors.y;
   
       // TODO: https://github.com/anvaka/panzoom/issues/112
+      let scx = scaleFactors.x
+      let scy = scaleFactors.y
       if ( bounds && (boundsPadding === 1) && (minZoom === 1) ) {
-        transform.scaleX *= ratio.x;
-        transform.scaleY *= ratio.y;
+        if ( scx ) transform.scaleX *= ratio.x;
+        if ( scy ) transform.scaleY *= ratio.y;
         keepTransformInsideBounds();
       } else {
         let transformAdjusted = keepTransformInsideBounds();
         if (!transformAdjusted) {
-          transform.scaleX *= ratio.x;
-          transform.scaleY *= ratio.y;
+          if ( scx ) transform.scaleX *= ratio.x;
+          if ( scy ) transform.scaleY *= ratio.y;
         }
       }
 
@@ -521,9 +533,17 @@ function createPanZoom(domElement, options) {
       let ratio = zoomLevel / transform.scale;
       zoomByRatio(clientX, clientY, ratio);
     } else {
-      let r_pair = {
-        x : (zoomLevel / transform.scaleX),
-        y : (zoomLevel / transform.scaleY)
+      let r_pair = { x : 1, y : 1 } 
+      if ( typeof zoomLevel === 'number' ) {
+        r_pair = {
+          x : (zoomLevel / transform.scaleX),
+          y : (zoomLevel / transform.scaleY)
+        }  
+      } else {
+        r_pair = {
+          x : (zoomLevel.x / transform.scaleX),
+          y : (zoomLevel.y / transform.scaleY)
+        }  
       }
       zoomByRatio(clientX, clientY, r_pair);
     }
@@ -624,10 +644,8 @@ function createPanZoom(domElement, options) {
 
     // TODO: Should I allow to cancel this?
     let tt = Object.assign({},transform)
-    if ( !linkAspect ) {
-      tt.scaleX *= scaleFactors.x === 0 ? 1.0 : scaleFactors.x
-      tt.scaleY = scaleFactors.y === 0 ? 1.0 : scaleFactors.y
-    }
+    tt.scaleX *= (scaleFactors.x === 0 ? 1.0 : scaleFactors.x)
+    tt.scaleY *= (scaleFactors.y === 0 ? 1.0 : scaleFactors.y)
     panController.applyTransform(tt,linkAspect);
 
     triggerEvent('transform');
@@ -840,10 +858,20 @@ function createPanZoom(domElement, options) {
         // They did a double tap here
         if (transformOrigin) {
           let offset = getTransformOriginOffset();
-          smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed);
+          if ( linkAspect ) {
+            smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed);            
+          } else {
+            let xypair = { x : zoomDoubleClickSpeed, y : zoomDoubleClickSpeed }
+            smoothZoom(offset.x, offset.y, xypair);            
+          }
         } else {
           // We want untransformed x/y here.
-          smoothZoom(lastSingleFingerOffset.x, lastSingleFingerOffset.y, zoomDoubleClickSpeed);
+          if ( linkAspect ) {
+            smoothZoom(lastSingleFingerOffset.x, lastSingleFingerOffset.y, zoomDoubleClickSpeed);            
+          } else {
+            let xypair = { x : zoomDoubleClickSpeed, y : zoomDoubleClickSpeed }
+            smoothZoom(lastSingleFingerOffset.x, lastSingleFingerOffset.y, xypair);            
+          }
         }
       } else if (now - lastTouchStartTime < clickEventTimeInMS) {
         handlePotentialClickEvent(e);
@@ -870,7 +898,12 @@ function createPanZoom(domElement, options) {
       // Need to refactor
       offset = getTransformOriginOffset();
     }
-    smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed);
+    if ( linkAspect ) {
+      smoothZoom(offset.x, offset.y, zoomDoubleClickSpeed);
+    } else {
+      let ratio = { x : zoomDoubleClickSpeed, y: zoomDoubleClickSpeed }
+      smoothZoom(offset.x, offset.y, ratio);
+    }
   }
 
   function onMouseDown(e) {
@@ -998,15 +1031,21 @@ function createPanZoom(domElement, options) {
     } else {
       let fromValueX = transform.scaleX;
       let fromValueY = transform.scaleY;
-      let from = { scale: { x: fromValueX, y: fromValueY } };
-      let to = { scale: { x : (scaleMultiplier * fromValueX), y : (scaleMultiplier * fromValueY) } };
+      let from = { x: fromValueX, y: fromValueY };
+      let to = false
+      
+      if ( typeof scaleMultiplier === 'number' ) {
+        to = { x : (scaleMultiplier * fromValueX), y : (scaleMultiplier * fromValueY) };
+      } else {
+        to = { x : (scaleMultiplier.x * fromValueX), y : (scaleMultiplier.y * fromValueY) };
+      }
   
       smoothScroll.cancel();
       cancelZoomAnimation();
   
       zoomToAnimation = animate(from, to, {
         step:  (v) => {
-          zoomAbs(clientX, clientY, v.scale);
+          zoomAbs(clientX, clientY, v);
         },
         done: triggerZoomEnd
       });
@@ -1030,20 +1069,20 @@ function createPanZoom(domElement, options) {
     } else if ( toScaleValue >= 0.0005 ) {
       let fromValueX = transform.scaleX;
       let fromValueY = transform.scaleY;
-      let from = { scale: { x: fromValueX, y: fromValueY } };
+      let from = { x: fromValueX, y: fromValueY };
 
       let xdif = Math.abs(fromValueX - toScaleValue)/toScaleValue
       let ydif = Math.abs(fromValueY - toScaleValue)/toScaleValue
 
 
-      let to = { scale: { x : xdif, y :ydif } };
+      let to = { x : xdif, y :ydif };
 
       smoothScroll.cancel();
       cancelZoomAnimation();
 
       zoomToAnimation = animate(from, to, {
         step: (v) => {
-          zoomAbs(clientX, clientY, v.scale);
+          zoomAbs(clientX, clientY, v);
         }
       });
     }
@@ -1063,7 +1102,11 @@ function createPanZoom(domElement, options) {
     if ( linkAspect ) {
       return zoomByRatio(clientX, clientY, scaleMultiplier);
     } else {
-      return zoomByRatio(clientX, clientY, { x : scaleMultiplier, y: scaleMultiplier });
+      if (  typeof scaleMultiplier === 'number' ) {
+        return zoomByRatio(clientX, clientY, { x : scaleMultiplier, y: scaleMultiplier });
+      } else {
+        return zoomByRatio(clientX, clientY, { x : scaleMultiplier.x, y: scaleMultiplier.y });
+      }
     }
   }
 
@@ -1093,6 +1136,12 @@ function createPanZoom(domElement, options) {
       // we should never run smooth scrolling if it was multiTouch (pinch zoom animation):
       if (!multiTouch) smoothScroll.stop();
       triggerEvent('panend');
+    }
+  }
+
+  function triggerDecelerateToZero() {
+    if ( smoothScroll.stop !== noop ) {
+      triggerEvent('decelerated-to-zero');
     }
   }
 

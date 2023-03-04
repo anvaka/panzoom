@@ -222,7 +222,7 @@ let bottomRight = {x: 1, y: 1};
 let centerCenter = {x: 0.5, y: 0.5};
 
 // now let's use it:
-panZoom(element, {
+panzoom(element, {
   transformOrigin: centerCenter
 });
 ```

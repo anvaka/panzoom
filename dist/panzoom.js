@@ -1368,10 +1368,11 @@ function makeSvgController(svgElement, options) {
     transform.y = screenCTM.f;
     transform.scale = screenCTM.a;
     owner.removeAttributeNS(null, 'viewBox');
+    svgElement.setAttribute('transform', 'var(--pz-transform)');
   }
 
   function applyTransform(transform) {
-    svgElement.setAttribute('transform', 'matrix(' +
+    svgElement.style.setProperty('--pz-transform', 'matrix(' +
       transform.scale + ' 0 0 ' +
       transform.scale + ' ' +
       transform.x + ' ' + transform.y + ')');

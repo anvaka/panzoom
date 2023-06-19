@@ -1290,10 +1290,9 @@ function makeDomController(domElement, options) {
   function applyTransform(transform) {
     // TODO: Should we cache this?
     domElement.style.transformOrigin = '0 0 0';
-    domElement.style.transform = 'matrix(' +
-      transform.scale + ', 0, 0, ' +
-      transform.scale + ', ' +
-      transform.x + ', ' + transform.y + ')';
+    domElement.style.setProperty('transform', 'matrix(var(--pz-transform))');
+    domElement.style.setProperty('--pz-transform', 
+    `${transform.scale}, 0, 0, ${transform.scale}, ${transform.x}, ${transform.y}`);
   }
 }
 
@@ -1368,14 +1367,12 @@ function makeSvgController(svgElement, options) {
     transform.y = screenCTM.f;
     transform.scale = screenCTM.a;
     owner.removeAttributeNS(null, 'viewBox');
-    svgElement.setAttribute('transform', 'var(--pz-transform)');
+    svgElement.style.setProperty('transform', 'matrix(var(--pz-transform))');
   }
 
   function applyTransform(transform) {
-    svgElement.style.setProperty('--pz-transform', 'matrix(' +
-      transform.scale + ' 0 0 ' +
-      transform.scale + ' ' +
-      transform.x + ' ' + transform.y + ')');
+    svgElement.style.setProperty('--pz-transform', 
+    `${transform.scale}, 0, 0, ${transform.scale}, ${transform.x}, ${transform.y}`);
   }
 }
 

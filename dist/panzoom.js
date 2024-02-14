@@ -68,6 +68,8 @@ function createPanZoom(domElement, options) {
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed;
   var beforeWheel = options.beforeWheel || noop;
   var beforeMouseDown = options.beforeMouseDown || noop;
+  var beforeTouchStart = options.beforeTouchStart || options.onTouch || beforeTouchStartDefault;
+  var beforeDoubleClick = options.beforeDoubleClick || options.onDoubleClick || beforeDoubleClickDefault;
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed;
   var transformOrigin = parseTransformOrigin(options.transformOrigin);
   var textSelection = options.enableTextSelection ? fakeTextSelectorInterceptor : domTextSelectionInterceptor;
@@ -591,7 +593,15 @@ function createPanZoom(domElement, options) {
 
   function onTouch(e) {
     // let them override the touch behavior
-    beforeTouch(e);
+    // support onTouch backwards compatibility.
+    if (beforeTouchStart(e)) {
+      if (options.onTouch) {
+        beforeTouchStartDefault(e);
+      } else {
+        return;
+      }
+    }
+
     clearPendingClickEventTimeout();
 
     if (e.touches.length === 1) {
@@ -604,28 +614,12 @@ function createPanZoom(domElement, options) {
     }
   }
 
-  function beforeTouch(e) {
-    // TODO: Need to unify this filtering names. E.g. use `beforeTouch`
-    if (options.onTouch && !options.onTouch(e)) {
-      // if they return `false` from onTouch, we don't want to stop
-      // events propagation. Fixes https://github.com/anvaka/panzoom/issues/12
-      return;
-    }
-
+  function beforeTouchStartDefault(e) {
     e.stopPropagation();
     e.preventDefault();
   }
 
-  function beforeDoubleClick(e) {
-    clearPendingClickEventTimeout();
-
-    // TODO: Need to unify this filtering names. E.g. use `beforeDoubleClick``
-    if (options.onDoubleClick && !options.onDoubleClick(e)) {
-      // if they return `false` from onTouch, we don't want to stop
-      // events propagation. Fixes https://github.com/anvaka/panzoom/issues/46
-      return;
-    }
-
+  function beforeDoubleClickDefault(e) {
     e.preventDefault();
     e.stopPropagation();
   }
@@ -763,7 +757,16 @@ function createPanZoom(domElement, options) {
   }
 
   function onDoubleClick(e) {
-    beforeDoubleClick(e);
+    // support onDoubleClick backwards compatibility
+    if (beforeDoubleClick(e)) {
+      if (options.onDoubleClick) {
+        beforeDoubleClickDefault(e);
+      } else {
+        return;
+      }
+    }
+    clearPendingClickEventTimeout();
+
     var offset = getOffsetXY(e);
     if (transformOrigin) {
       // TODO: looks like this is duplicated in the file.
@@ -1327,12 +1330,12 @@ function makeSvgController(svgElement, options) {
   }
 
   function getBBox() {
-    var bbox =  svgElement.getBBox();
+    var boundingBox =  svgElement.getBBox();
     return {
-      left: bbox.x,
-      top: bbox.y,
-      width: bbox.width,
-      height: bbox.height,
+      left: boundingBox.x,
+      top: boundingBox.y,
+      width: boundingBox.width,
+      height: boundingBox.height,
     };
   }
 

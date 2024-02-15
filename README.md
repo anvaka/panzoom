@@ -269,6 +269,8 @@ panzoom(element, {
 });
 ```
 
+Note: When enabled, `transformOrigin` is ignored during pinch-zooming.
+
 ## Disable Smooth Scroll
 
 You can disable smooth scroll, by passing optional `smoothScroll` argument:

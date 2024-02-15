@@ -24,7 +24,7 @@ module.exports = createPanZoom;
 /**
  * Creates a new instance of panzoom, so that an object can be panned and zoomed
  *
- * @param {DOMElement} domElement where panzoom should be attached.
+ * @param {HTMLElement|SVGGraphicsElement} domElement where panzoom should be attached.
  * @param {Object} options that configure behavior.
  */
 function createPanZoom(domElement, options) {
@@ -127,6 +127,7 @@ function createPanZoom(domElement, options) {
     centerOn: centerOn,
     zoomTo: publicZoomTo,
     zoomAbs: zoomAbs,
+    zoom: zoom,
     smoothZoom: smoothZoom,
     smoothZoomAbs: smoothZoomAbs,
     showRectangle: showRectangle,
@@ -432,6 +433,18 @@ function createPanZoom(domElement, options) {
   function zoomAbs(clientX, clientY, zoomLevel) {
     var ratio = zoomLevel / transform.scale;
     zoomByRatio(clientX, clientY, ratio);
+  }
+
+  function zoom(ratio, smooth = true) {
+    var ownerRect = owner.getBoundingClientRect();
+    var bbox = panController.getBBox();
+    var x = (ownerRect.width / 2) + bbox.left;
+    var y = (ownerRect.height / 2) + bbox.top;
+    if (smooth) {
+      smoothZoom(x, y, ratio);
+    } else {
+      zoomByRatio(x, y, ratio);
+    }
   }
 
   function centerOn(ui) {
@@ -1327,12 +1340,12 @@ function makeSvgController(svgElement, options) {
   }
 
   function getBBox() {
-    var bbox =  svgElement.getBBox();
+    var boundingBox =  svgElement.getBBox();
     return {
-      left: bbox.x,
-      top: bbox.y,
-      width: bbox.width,
-      height: bbox.height,
+      left: boundingBox.x,
+      top: boundingBox.y,
+      width: boundingBox.width,
+      height: boundingBox.height,
     };
   }
 

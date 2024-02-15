@@ -410,13 +410,27 @@ instance.smoothMoveTo(0, 0);
 
 ## Triggering Zoom
 
-To Zoom the object using Javascript use `zoomTo(<number>,<number>,<number>)` function. It expects x, y value as coordinates of where to zoom. It also expects the zoom factor as the third argument. If zoom factor is greater than 1, apply zoom IN. If zoom factor is less than 1, apply zoom OUT.
+### `zoom(zoomFactor: number, smooth: number)`:
+
+`zoom` requires the zoom factor as its first argument. If the zoom factor is greater than 1, it applies a zoom-in effect. Conversely, if the zoom factor is less than 1, it applies a zoom-out effect. This function zooms in or out towards the center of the visible area. To disable smooth zooming, pass `false` as the second argument. 
+
+``` js
+instance.zoom(1.25); // zoom in
+instance.zoom(0.8); // zoom out
+instance.zoom(0.8, false); // second argument disables smooth zoom
+```
+
+### `zoomTo(x: number, y: number, zoomFactor: number)`:
+
+`zoomTo` requires `x` and `y` values as coordinates for the zoom location and the zoom factor as the third argument. If the zoom factor is greater than 1, it applies a zoom-in effect. If the zoom factor is less than 1, it applies a zoom-out effect.
 
 ``` js
 instance.zoomTo(0, 0, 2);
 ```
 
-To zoom in a smooth way use `smoothZoom(<number>,<number>,<number>)`:
+### `smoothZoom(x: number, y: number, zoomFactor: number)`:
+
+`smoothZoom` is identical to `zoomTo` but zooms in a smooth way.
 
 ``` js
 instance.smoothZoom(0, 0, 0.5);

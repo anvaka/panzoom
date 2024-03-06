@@ -225,7 +225,7 @@ test('double click zooms in', t => {
   }
 });
 
-test('Can cancel preventDefault', t => {
+test('double click can cancel preventDefault', t => {
   var dom = new JSDOM(`<body><div class='content'></div></body>`);
   const document = dom.window.document;
   var content = document.querySelector('.content');
@@ -267,14 +267,56 @@ test('Can cancel preventDefault', t => {
   }
 });
 
+test('onDoubleClick true doesn\'t cancel preventDefault', t => {
+  var dom = new JSDOM(`<body><div class='content'></div></body>`);
+  const document = dom.window.document;
+  var content = document.querySelector('.content');
+  // JSDOM does not support this, have to override:
+  content.parentElement.getBoundingClientRect = makeBoundingRect(100, 100);
+
+  var panzoom = createPanzoom(content, {
+    onDoubleClick() {
+      // we don't want to prevent default!
+      return true;
+    }
+  });
+
+  var calledTimes = 0;
+  panzoom.on('zoom', function() {
+    calledTimes += 1;
+  });
+
+  var doubleClick = new dom.window.MouseEvent('dblclick', {
+    bubbles: true,
+    cancelable: true,
+    clientX: 50,
+    clientY: 50
+  });
+
+  content.dispatchEvent(doubleClick);
+  t.ok(doubleClick.defaultPrevented, 'default should be prevented');
+  setTimeout(verifyTransformIsChanged, 40);
+
+  function verifyTransformIsChanged() {
+    var transform = parseMatrixTransform(content.style.transform);
+    t.ok(transform, 'Transform is defined');
+    t.ok(transform.scaleX !== 1, 'Scale has changed');
+    t.ok(transform.scaleX === transform.scaleY, 'Scale is proportional');
+    t.ok(transform.dx !== 0 && transform.dy !== 0, 'translated a bit');
+    t.ok(calledTimes > 0, 'zoom event triggered');
+    panzoom.dispose();
+    t.end();
+  }
+});
+
 function makeBoundingRect(width, height) {
-    return function getBoundingClientRect() {
-      return {
-        left: 0,
-        top: 0,
-        width: width,
-        height: height
-      };
+  return function getBoundingClientRect() {
+    return {
+      left: 0,
+      top: 0,
+      width: width,
+      height: height
+    };
   };
 }
 
@@ -284,9 +326,9 @@ function parseMatrixTransform(transformString) {
   if (!matches) return;
 
   return {
-    scaleX: parseFloat(matches[1]), 
-    scaleY: parseFloat(matches[2]), 
-    dx: parseFloat(matches[3]), 
+    scaleX: parseFloat(matches[1]),
+    scaleY: parseFloat(matches[2]),
+    dx: parseFloat(matches[3]),
     dy: parseFloat(matches[4])
   };
 }

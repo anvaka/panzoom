@@ -71,6 +71,7 @@ function createPanZoom(domElement, options) {
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed;
   var transformOrigin = parseTransformOrigin(options.transformOrigin);
   var textSelection = options.enableTextSelection ? fakeTextSelectorInterceptor : domTextSelectionInterceptor;
+  var panButton = options.panButton || 'left'; 
 
   validateBounds(bounds);
 
@@ -788,11 +789,20 @@ function createPanZoom(domElement, options) {
       e.stopPropagation();
       return false;
     }
-    // for IE, left click == 1
-    // for Firefox, left click == 0
-    var isLeftButton =
-      (e.button === 1 && window.event !== null) || e.button === 0;
-    if (!isLeftButton) return;
+
+    if (panButton === 'left') {
+      // for IE, left click == 1
+      // for Firefox, left click == 0
+      var isLeftButton =
+        (e.button === 1 && window.event !== null) || e.button === 0;
+      if (!isLeftButton) return;
+    }
+
+    if (panButton === 'middle') {
+      var isMiddleButton =
+        (e.button === 3 && window.event !== null) || e.button === 1;
+      if (!isMiddleButton) return;
+    }
 
     smoothScroll.cancel();
 
@@ -1280,10 +1290,9 @@ function makeDomController(domElement, options) {
   function applyTransform(transform) {
     // TODO: Should we cache this?
     domElement.style.transformOrigin = '0 0 0';
-    domElement.style.transform = 'matrix(' +
-      transform.scale + ', 0, 0, ' +
-      transform.scale + ', ' +
-      transform.x + ', ' + transform.y + ')';
+    domElement.style.setProperty('transform', 'matrix(var(--pz-transform))');
+    domElement.style.setProperty('--pz-transform', 
+    `${transform.scale}, 0, 0, ${transform.scale}, ${transform.x}, ${transform.y}`);
   }
 }
 
@@ -1327,12 +1336,12 @@ function makeSvgController(svgElement, options) {
   }
 
   function getBBox() {
-    var bbox =  svgElement.getBBox();
+    var boundingBox =  svgElement.getBBox();
     return {
-      left: bbox.x,
-      top: bbox.y,
-      width: bbox.width,
-      height: bbox.height,
+      left: boundingBox.x,
+      top: boundingBox.y,
+      width: boundingBox.width,
+      height: boundingBox.height,
     };
   }
 
@@ -1358,13 +1367,12 @@ function makeSvgController(svgElement, options) {
     transform.y = screenCTM.f;
     transform.scale = screenCTM.a;
     owner.removeAttributeNS(null, 'viewBox');
+    svgElement.style.setProperty('transform', 'matrix(var(--pz-transform))');
   }
 
   function applyTransform(transform) {
-    svgElement.setAttribute('transform', 'matrix(' +
-      transform.scale + ' 0 0 ' +
-      transform.scale + ' ' +
-      transform.x + ' ' + transform.y + ')');
+    svgElement.style.setProperty('--pz-transform', 
+    `${transform.scale}, 0, 0, ${transform.scale}, ${transform.x}, ${transform.y}`);
   }
 }
 

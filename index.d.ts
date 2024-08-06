@@ -37,7 +37,15 @@ declare module "panzoom" {
     beforeWheel?: (e: WheelEvent) => void;
     beforeMouseDown?: (e: MouseEvent) => void;
     autocenter?: boolean;
+    beforeTouchStart?: (e: TouchEvent) => void;
+    /**
+     * @deprecated Use beforeTouchStart instead. Warning: this involves more than just a name change. Please read the documentation for details.
+     */
     onTouch?: (e: TouchEvent) => void;
+    beforeDoubleClick?: (e: Event) => void;
+    /**
+     * @deprecated Use beforeDoubleClick instead. Warning: this involves more than just a name change. Please read the documentation for details.
+     */
     onDoubleClick?: (e: Event) => void;
 
     /**

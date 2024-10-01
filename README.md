@@ -407,6 +407,20 @@ To pan in a smooth way use `smoothMoveTo(<number>,<number>)`:
 instance.smoothMoveTo(0, 0);
 ```
 
+## Triggering Center
+
+There's also a `center()` function to conveniently center the scene:
+
+``` js
+instance.center();
+```
+
+If you want to also resize to fit use `center(true)`:
+
+``` js
+instance.center(true);
+```
+
 
 ## Triggering Zoom
 

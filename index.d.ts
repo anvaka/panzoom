@@ -59,6 +59,7 @@ declare module "panzoom" {
     moveTo: (x: number, y: number) => void;
     smoothMoveTo: (x: number, y: number) => void;
     centerOn: (ui: any) => void;
+    center: (fit: boolean) => void;
     zoomTo: (clientX: number, clientY: number, scaleMultiplier: number) => void;
     zoomAbs: (clientX: number, clientY: number, zoomLevel: number) => void;
     smoothZoom: (

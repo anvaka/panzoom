@@ -166,6 +166,18 @@ panzoom(element, {
 });
 ```
 
+## Change pan mouse button
+
+When using a mouse, the default behaviour is clicking with the left button and drag to 
+pan, you can specify which mouse button you prefer with the option `panButton`, the 
+possible options are `left` or `middle`.
+
+``` js
+panzoom(element, {
+  panButton: 'left'
+});
+```
+
 ## Zoom Speed
 
 You can adjust how fast it zooms, by passing optional `zoomSpeed` argument:

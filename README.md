@@ -259,6 +259,18 @@ assert(instance.getMaxZoom() === 1);
 assert(instance.getMinZoom() === 0.1);
 ```
 
+## Two Finger Pan
+
+You can enable panning while pinch-zooming, similar to Google/Apple Maps, by passing the optional enableTwoFingerPan argument:
+
+``` js
+panzoom(element, {
+  enableTwoFingerPan: true
+});
+```
+
+Note: When enabled, `transformOrigin` is ignored during pinch-zooming.
+
 ## Disable Smooth Scroll
 
 You can disable smooth scroll, by passing optional `smoothScroll` argument:

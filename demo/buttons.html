@@ -850,15 +850,11 @@ a {
 
     function handleClick(e) {
       e.preventDefault();
-      let container = document.querySelector('#scene');
-      let rect = container.getBBox();
-      let cx = rect.x + rect.width/2;
-      let cy = rect.y + rect.height/2;
       let isZoomIn = e.target.id === 'zoomIn';
       let zoomBy = isZoomIn ? 2 : 0.5;
-      pz.smoothZoom(cx, cy, zoomBy);
-      // Or if you don't need animation, usee this:
-      // pz.zoomTo(cx, cy, zoomBy);
+      pz.zoom(zoomBy);
+      // Or if you don't need animation, use this:
+      // pz.zoom(zoomBy, false);
     }
   </script>
   </body>

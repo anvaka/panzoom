@@ -124,6 +124,7 @@ function createPanZoom(domElement, options) {
     moveTo: moveTo,
     smoothMoveTo: smoothMoveTo, 
     centerOn: centerOn,
+    center: center,
     zoomTo: publicZoomTo,
     zoomAbs: zoomAbs,
     smoothZoom: smoothZoom,
@@ -213,7 +214,7 @@ function createPanZoom(domElement, options) {
     return storedCTMResult;
   }
 
-  function autocenter() {
+  function autocenter(fit = true) {
     var w; // width of the parent
     var h; // height of the parent
     var left = 0;
@@ -239,10 +240,15 @@ function createPanZoom(domElement, options) {
     }
     var dh = h / bbox.height;
     var dw = w / bbox.width;
-    var scale = Math.min(dw, dh);
+    var scale = fit ? Math.min(dw, dh) : transform.scale;
     transform.x = -(bbox.left + bbox.width / 2) * scale + w / 2 + left;
     transform.y = -(bbox.top + bbox.height / 2) * scale + h / 2 + top;
     transform.scale = scale;
+  }
+
+  function center(fit = false) {
+    autocenter(fit);
+    makeDirty();
   }
 
   function getTransformModel() {

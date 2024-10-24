@@ -125,6 +125,7 @@ function createPanZoom(domElement, options) {
     smoothMoveTo: smoothMoveTo, 
     centerOn: centerOn,
     zoomTo: publicZoomTo,
+    zoomToCenter: zoomToCenter,
     zoomAbs: zoomAbs,
     smoothZoom: smoothZoom,
     smoothZoomAbs: smoothZoomAbs,
@@ -922,6 +923,17 @@ function createPanZoom(domElement, options) {
     smoothScroll.cancel();
     cancelZoomAnimation();
     return zoomByRatio(clientX, clientY, scaleMultiplier);
+  }
+
+  /**
+   * Zooms to the center of the container
+   * @param {Number} scaleMultiplier 0.8 = zoom out by 20% and 1.2 = zoom in by 20%
+   */
+  function zoomToCenter(scaleMultiplier) {
+    const containerRect = owner.getBoundingClientRect()
+    const centerX = containerRect.width / 2
+    const centerY = containerRect.height / 2
+    return zoomByRatio(centerX, centerY, scaleMultiplier)
   }
 
   function cancelZoomAnimation() {

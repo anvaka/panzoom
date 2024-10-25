@@ -73,6 +73,7 @@ declare module "panzoom" {
     ) => void;
     getTransform: () => Transform;
     showRectangle: (rect: ClientRect) => void;
+    zoomToFit: (ui: any) => void;
     pause: () => void;
     resume: () => void;
     isPaused: () => boolean;

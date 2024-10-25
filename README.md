@@ -347,8 +347,43 @@ panzoom(element, {
 The library will handle `ontouch` events very aggressively, it will `preventDefault`, and
 `stopPropagation` for the touch events inside container. [Sometimes](https://github.com/anvaka/panzoom/issues/12) this is not a desirable behavior.
 
-If you want to take care about this yourself, you can pass `onTouch` callback to the options object:
+If you want to take care about this yourself, you can pass `beforeTouchStart` callback to the options object.
 
+Note: if you don't `preventDefault` yourself - make sure you test the page behavior on iOS devices.
+Sometimes this may cause page to [bounce undesirably](https://stackoverflow.com/questions/23862204/disable-ios-safari-elastic-scrolling).
+
+### beforeTouchStart
+
+``` js
+panzoom(element, {
+  beforeTouchStart: function(e) {
+    // `e` - is current touch event.
+    // below is the default behavior modify as needed
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // You can return true to prevent library from handling this touch event.
+    // return true; 
+  }
+});
+```
+
+E.g. Sometimes single finger touch interferes with scrolling. If you want to alleviate it you can provide a custom filter to ignore those.
+``` js
+panzoom(element, {
+  // disable when only 1 touch.
+  beforeTouchStart: (e) => {
+    // `e` - is current touch event.
+    e.stopPropagation();
+    if (e.touches.length === 1) {
+      return true; // this return prevents library from handle this touch. 
+    }
+    e.preventDefault();
+  },
+});
+```
+
+### ~~onTouch~~ (depreciated)
 ``` js
 panzoom(element, {
   onTouch: function(e) {
@@ -359,16 +394,30 @@ panzoom(element, {
 });
 ```
 
-Note: if you don't `preventDefault` yourself - make sure you test the page behavior on iOS devices.
-Sometimes this may cause page to [bounce undesirably](https://stackoverflow.com/questions/23862204/disable-ios-safari-elastic-scrolling). 
-
-
 ## Handling double click events
 
 By default panzoom will prevent default action on double click events - this is done to avoid
 accidental text selection (which is default browser action on double click). If you prefer to
 allow default action, you can pass `onDoubleClick()` callback to options. If this callback
 returns false, then the library will not prevent default action:
+
+### beforeDoubleClick
+
+``` js
+panzoom(element, {
+  beforeDoubleClick: function(e) {
+    // `e` - is current touch event.
+    // below is the default behavior modify as needed
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // You can return true to prevent library from handling this touch event.
+    // return true; 
+  }
+});
+```
+
+### ~~onDoubleClick~~ (depreciated)
 
 ``` js
 panzoom(element, {

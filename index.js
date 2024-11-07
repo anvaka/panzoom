@@ -70,6 +70,7 @@ function createPanZoom(domElement, options) {
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed;
   var transformOrigin = parseTransformOrigin(options.transformOrigin);
   var textSelection = options.enableTextSelection ? fakeTextSelectorInterceptor : domTextSelectionInterceptor;
+  var panButton = options.panButton || 'left'; 
 
   validateBounds(bounds);
 
@@ -787,11 +788,20 @@ function createPanZoom(domElement, options) {
       e.stopPropagation();
       return false;
     }
-    // for IE, left click == 1
-    // for Firefox, left click == 0
-    var isLeftButton =
-      (e.button === 1 && window.event !== null) || e.button === 0;
-    if (!isLeftButton) return;
+
+    if (panButton === 'left') {
+      // for IE, left click == 1
+      // for Firefox, left click == 0
+      var isLeftButton =
+        (e.button === 1 && window.event !== null) || e.button === 0;
+      if (!isLeftButton) return;
+    }
+
+    if (panButton === 'middle') {
+      var isMiddleButton =
+        (e.button === 3 && window.event !== null) || e.button === 1;
+      if (!isMiddleButton) return;
+    }
 
     smoothScroll.cancel();
 

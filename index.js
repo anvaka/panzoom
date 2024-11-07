@@ -651,9 +651,9 @@ function createPanZoom(domElement, options) {
     }
 
     touchInProgress = true;
-    document.addEventListener('touchmove', handleTouchMove);
-    document.addEventListener('touchend', handleTouchEnd);
-    document.addEventListener('touchcancel', handleTouchEnd);
+    owner.addEventListener('touchmove', handleTouchMove);
+    owner.addEventListener('touchend', handleTouchEnd);
+    owner.addEventListener('touchcancel', handleTouchEnd);
   }
 
   function handleTouchMove(e) {
@@ -802,8 +802,8 @@ function createPanZoom(domElement, options) {
 
     // We need to listen on document itself, since mouse can go outside of the
     // window, and we will loose it
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+    owner.addEventListener('mousemove', onMouseMove);
+    owner.addEventListener('mouseup', onMouseUp);
     textSelection.capture(e.target || e.srcElement);
 
     return false;
@@ -835,15 +835,15 @@ function createPanZoom(domElement, options) {
   }
 
   function releaseDocumentMouse() {
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
+    owner.removeEventListener('mousemove', onMouseMove);
+    owner.removeEventListener('mouseup', onMouseUp);
     panstartFired = false;
   }
 
   function releaseTouches() {
-    document.removeEventListener('touchmove', handleTouchMove);
-    document.removeEventListener('touchend', handleTouchEnd);
-    document.removeEventListener('touchcancel', handleTouchEnd);
+    owner.removeEventListener('touchmove', handleTouchMove);
+    owner.removeEventListener('touchend', handleTouchEnd);
+    owner.removeEventListener('touchcancel', handleTouchEnd);
     panstartFired = false;
     multiTouch = false;
     touchInProgress = false;

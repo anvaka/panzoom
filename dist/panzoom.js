@@ -64,6 +64,10 @@ function createPanZoom(domElement, options) {
   var maxZoom = typeof options.maxZoom === 'number' ? options.maxZoom : Number.POSITIVE_INFINITY;
   var minZoom = typeof options.minZoom === 'number' ? options.minZoom : 0;
 
+  if (options.bordered && (!minZoom || minZoom < 1)) {
+    throw new Error('Cannot create bordered panzoom with minZoom less than 1');
+  }
+
   var boundsPadding = typeof options.boundsPadding === 'number' ? options.boundsPadding : 0.05;
   var zoomDoubleClickSpeed = typeof options.zoomDoubleClickSpeed === 'number' ? options.zoomDoubleClickSpeed : defaultDoubleTapZoomSpeed;
   var beforeWheel = options.beforeWheel || noop;
@@ -178,6 +182,48 @@ function createPanZoom(domElement, options) {
     return paused;
   }
 
+  function resolveTransformScale(scale) {
+    if (minZoom) {
+      scale = Math.max(scale, minZoom)
+    }
+
+    return scale;
+  }
+
+  function setTransformScale(scale) {
+    transform.scale = resolveTransformScale(scale);
+  }
+
+  function setTransformX(x, scale = null) {
+    scale = scale || transform.scale;
+    scale = resolveTransformScale(scale);
+
+    if (options.bordered) {
+      if (x > 0) {
+        x = 0;
+      } else {
+        x = Math.max(x, -(domElement.clientWidth * scale - domElement.clientWidth))
+      }
+    }
+
+    transform.x = x;
+  }
+
+  function setTransformY(y, scale = null) {
+    scale = scale || transform.scale;
+    scale = resolveTransformScale(scale);
+
+    if (options.bordered) {
+      if (y > 0) {
+        y = 0;
+      } else {
+        y = Math.max(y, -(domElement.clientHeight * scale - domElement.clientHeight))
+      }
+    }
+
+    transform.y = y;
+  }
+
   function showRectangle(rect) {
     // TODO: this duplicates autocenter. I think autocenter should go.
     var clientRect = owner.getBoundingClientRect();
@@ -192,9 +238,9 @@ function createPanZoom(domElement, options) {
     var dw = size.x / rectWidth;
     var dh = size.y / rectHeight;
     var scale = Math.min(dw, dh);
-    transform.x = -(rect.left + rectWidth / 2) * scale + size.x / 2;
-    transform.y = -(rect.top + rectHeight / 2) * scale + size.y / 2;
-    transform.scale = scale;
+    setTransformX(-(rect.left + rectWidth / 2) * scale + size.x / 2);
+    setTransformY(-(rect.top + rectHeight / 2) * scale + size.y / 2);
+    setTransformScale(scale);
   }
 
   function transformToScreen(x, y) {
@@ -241,9 +287,9 @@ function createPanZoom(domElement, options) {
     var dh = h / bbox.height;
     var dw = w / bbox.width;
     var scale = Math.min(dw, dh);
-    transform.x = -(bbox.left + bbox.width / 2) * scale + w / 2 + left;
-    transform.y = -(bbox.top + bbox.height / 2) * scale + h / 2 + top;
-    transform.scale = scale;
+    setTransformX(-(bbox.left + bbox.width / 2) * scale + w / 2 + left, scale);
+    setTransformY(-(bbox.top + bbox.height / 2) * scale + h / 2 + top, scale);
+    setTransformScale(scale);
   }
 
   function getTransformModel() {
@@ -294,8 +340,8 @@ function createPanZoom(domElement, options) {
   }
 
   function moveTo(x, y) {
-    transform.x = x;
-    transform.y = y;
+    setTransformX(x);
+    setTransformY(y);
 
     keepTransformInsideBounds();
 
@@ -412,16 +458,16 @@ function createPanZoom(domElement, options) {
 
     var size = transformToScreen(clientX, clientY);
 
-    transform.x = size.x - ratio * (size.x - transform.x);
-    transform.y = size.y - ratio * (size.y - transform.y);
+    setTransformX(size.x - ratio * (size.x - transform.x), newScale);
+    setTransformY(size.y - ratio * (size.y - transform.y), newScale);
 
     // TODO: https://github.com/anvaka/panzoom/issues/112
     if (bounds && boundsPadding === 1 && minZoom === 1) {
-      transform.scale *= ratio;
+      setTransformScale(transform.scale * ratio);
       keepTransformInsideBounds();
     } else {
       var transformAdjusted = keepTransformInsideBounds();
-      if (!transformAdjusted) transform.scale *= ratio;
+      if (!transformAdjusted) setTransformScale(transform.scale * ratio);
     }
 
     triggerEvent('zoom');
@@ -1327,12 +1373,12 @@ function makeSvgController(svgElement, options) {
   }
 
   function getBBox() {
-    var bbox =  svgElement.getBBox();
+    var boundingBox =  svgElement.getBBox();
     return {
-      left: bbox.x,
-      top: bbox.y,
-      width: bbox.width,
-      height: bbox.height,
+      left: boundingBox.x,
+      top: boundingBox.y,
+      width: boundingBox.width,
+      height: boundingBox.height,
     };
   }
 

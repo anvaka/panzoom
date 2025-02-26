@@ -33,6 +33,7 @@ declare module "panzoom" {
     initialX?: number,
     initialY?: number,
     initialZoom?: number,
+    initialTransform?: Transform;
     pinchSpeed?: number;
     beforeWheel?: (e: WheelEvent) => void;
     beforeMouseDown?: (e: MouseEvent) => void;

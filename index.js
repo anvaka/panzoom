@@ -594,7 +594,7 @@ function createPanZoom(domElement, options) {
     clearPendingClickEventTimeout();
 
     if (e.touches.length === 1) {
-      return handleSingleFingerTouch(e, e.touches[0]);
+      return handleSingleFingerTouch(e);
     } else if (e.touches.length === 2) {
       // handleTouchMove() will care about pinch zoom.
       pinchZoomLength = getPinchZoomLength(e.touches[0], e.touches[1]);

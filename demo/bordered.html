@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="Description" content="Pan and zoom DOM  elements demo " />
+    <meta name="keywords" content="dom, pan, zoom" />
+    <meta name="author" content="Andrei Kashcha" />
+    <meta name="title" content="DOM panzoom demo" />
+    <title>Bordered panzoom demo</title>
+    <style type="text/css" media="screen">
+      .container {
+        border: 1px solid rgb(51, 50, 50);
+        width: 600px;
+        height: 600px;
+        overflow: hidden;
+      }
+
+      .container img {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <img
+        src="https://cdnpp.org/wp-content/uploads/2021/06/sample-image-Square.jpg"
+        alt="sample-image"
+        class="zoomable"
+      />
+    </div>
+    <!-- <script src="../dist/panzoom.js"></script> -->
+    <script src="../dist/panzoom.js"></script>
+    <script>
+      var area = document.querySelector(".zoomable")
+      panzoom(area, {
+        smoothScroll: false,
+        minZoom: 1,
+        bordered: true,
+        filterKey: () => true,
+      })
+    </script>
+    <a
+      href="https://github.com/anvaka/panzoom"
+      style="position: absolute; top: 8px; right: 8px; border: 0"
+      >GitHub</a
+    >
+  </body>
+</html>

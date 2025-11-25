@@ -71,6 +71,7 @@ function createPanZoom(domElement, options) {
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed;
   var transformOrigin = parseTransformOrigin(options.transformOrigin);
   var textSelection = options.enableTextSelection ? fakeTextSelectorInterceptor : domTextSelectionInterceptor;
+  var enableTwoFingerPan = !!options.enableTwoFingerPan;
 
   validateBounds(bounds);
 
@@ -108,7 +109,7 @@ function createPanZoom(domElement, options) {
   } else {
     // otherwise we use forward smoothScroll settings to kinetic API
     // which makes scroll smoothing.
-    smoothScroll = kinetic(getPoint, scroll, options.smoothScroll);
+    smoothScroll = kinetic(getPoint, getTarget, scroll, options.smoothScroll);
   }
 
   var moveByAnimation;
@@ -288,23 +289,30 @@ function createPanZoom(domElement, options) {
 
   function getPoint() {
     return {
+      x: mouseX,
+      y: mouseY,
+    };
+  }
+
+  function getTarget() {
+    return {
       x: transform.x,
       y: transform.y
     };
   }
 
-  function moveTo(x, y) {
+  function moveTo(x, y, dirty = true) {
     transform.x = x;
     transform.y = y;
 
     keepTransformInsideBounds();
 
     triggerEvent('pan');
-    makeDirty();
+    if (dirty) makeDirty();
   }
 
-  function moveBy(dx, dy) {
-    moveTo(transform.x + dx, transform.y + dy);
+  function moveBy(dx, dy, dirty = true) {
+    moveTo(transform.x + dx, transform.y + dy, dirty);
   }
 
   function keepTransformInsideBounds() {
@@ -595,12 +603,9 @@ function createPanZoom(domElement, options) {
     clearPendingClickEventTimeout();
 
     if (e.touches.length === 1) {
-      return handleSingleFingerTouch(e, e.touches[0]);
+      return handleSingleFingerTouch(e);
     } else if (e.touches.length === 2) {
-      // handleTouchMove() will care about pinch zoom.
-      pinchZoomLength = getPinchZoomLength(e.touches[0], e.touches[1]);
-      multiTouch = true;
-      startTouchListenerIfNeeded();
+      return handleTwoFingerTouch(e);
     }
   }
 
@@ -645,6 +650,20 @@ function createPanZoom(domElement, options) {
     startTouchListenerIfNeeded();
   }
 
+  function handleTwoFingerTouch(e) {
+    // handleTouchMove() will care about pan and pinch zoom.
+    pinchZoomLength = getPinchZoomLength(e.touches[0], e.touches[1]);
+
+    // pan init
+    var offset = calcMidOffset(e.touches[0], e.touches[1]);
+    var point = transformToScreen(offset.x, offset.y);
+    mouseX = point.x;
+    mouseY = point.y;
+
+    multiTouch = true;
+    startTouchListenerIfNeeded();
+  }
+
   function startTouchListenerIfNeeded() {
     if (touchInProgress) {
       // no need to do anything, as we already listen to events;
@@ -658,50 +677,61 @@ function createPanZoom(domElement, options) {
   }
 
   function handleTouchMove(e) {
-    if (e.touches.length === 1) {
-      e.stopPropagation();
-      var touch = e.touches[0];
+    if (e.touches.length > 2) return;
+    if (multiTouch && e.touches.length === 1) return;
+    if (!multiTouch && e.touches.length === 2) return;
 
-      var offset = getOffsetXY(touch);
-      var point = transformToScreen(offset.x, offset.y);
+    var offset = e.touches.length === 1
+      ? getOffsetXY(e.touches[0])
+      : calcMidOffset(e.touches[0], e.touches[1]);
 
-      var dx = point.x - mouseX;
-      var dy = point.y - mouseY;
-
-      if (dx !== 0 && dy !== 0) {
-        triggerPanStart();
-      }
-      mouseX = point.x;
-      mouseY = point.y;
-      internalMoveBy(dx, dy);
-    } else if (e.touches.length === 2) {
-      // it's a zoom, let's find direction
-      multiTouch = true;
-      var t1 = e.touches[0];
-      var t2 = e.touches[1];
-      var currentPinchLength = getPinchZoomLength(t1, t2);
-
-      // since the zoom speed is always based on distance from 1, we need to apply
-      // pinch speed only on that distance from 1:
-      var scaleMultiplier =
-        1 + (currentPinchLength / pinchZoomLength - 1) * pinchSpeed;
-
-      var firstTouchPoint = getOffsetXY(t1);
-      var secondTouchPoint = getOffsetXY(t2);
-      mouseX = (firstTouchPoint.x + secondTouchPoint.x) / 2;
-      mouseY = (firstTouchPoint.y + secondTouchPoint.y) / 2;
-      if (transformOrigin) {
-        var offset = getTransformOriginOffset();
-        mouseX = offset.x;
-        mouseY = offset.y;
-      }
-
-      publicZoomTo(mouseX, mouseY, scaleMultiplier);
-
-      pinchZoomLength = currentPinchLength;
-      e.stopPropagation();
-      e.preventDefault();
+    if (!multiTouch) {
+      handleTouchMovePan(e, offset);
+    } else {
+      handleTouchMoveZoom(e, offset);
+      handleTouchMovePan(e, offset);
     }
+  }
+
+  function handleTouchMovePan(e, offset) {
+    if (multiTouch && !enableTwoFingerPan) {
+      e.stopPropagation();
+      return;
+    }
+
+    var point = transformToScreen(offset.x, offset.y);
+    var dx = point.x - mouseX;
+    var dy = point.y - mouseY;
+
+    if (dx !== 0 && dy !== 0) {
+      triggerPanStart();
+    }
+
+    mouseX = point.x;
+    mouseY = point.y;
+
+    moveBy(dx, dy, !multiTouch);
+    e.stopPropagation();
+  }
+
+  function handleTouchMoveZoom(e, offset) {
+    var currentPinchLength = getPinchZoomLength(e.touches[0], e.touches[1]);
+    // since the zoom speed is always based on distance from 1, we need to apply
+    // pinch speed only on that distance from 1:
+    var scaleMultiplier =
+      1 + (currentPinchLength / pinchZoomLength - 1) * pinchSpeed;
+
+    if (transformOrigin && !enableTwoFingerPan) {
+      offset = getTransformOriginOffset();
+      mouseX = offset.x;
+      mouseY = offset.y;
+    }
+
+    publicZoomTo(offset.x, offset.y, scaleMultiplier);
+
+    pinchZoomLength = currentPinchLength;
+
+    e.preventDefault();
   }
 
   function clearPendingClickEventTimeout() {
@@ -730,10 +760,13 @@ function createPanZoom(domElement, options) {
   function handleTouchEnd(e) {
     clearPendingClickEventTimeout();
     if (e.touches.length > 0) {
-      var offset = getOffsetXY(e.touches[0]);
-      var point = transformToScreen(offset.x, offset.y);
-      mouseX = point.x;
-      mouseY = point.y;
+      // prevents conflict with smooth scroll and pinch zoom when two finger pan is enabled.
+      if (!multiTouch) {
+        var offset = getOffsetXY(e.touches[0]);
+        var point = transformToScreen(offset.x, offset.y);
+        mouseX = point.x;
+        mouseY = point.y;
+      }
     } else {
       var now = new Date();
       if (now - lastTouchEndTime < doubleTapSpeedInMS) {
@@ -760,6 +793,14 @@ function createPanZoom(domElement, options) {
     var dx = finger1.clientX - finger2.clientX;
     var dy = finger1.clientY - finger2.clientY;
     return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function calcMidOffset(t1, t2) {
+    const mid = (num1, num2) => (num1 + num2) / 2;
+    var x = mid(t1.clientX, t2.clientX);
+    var y = mid(t1.clientY, t2.clientY);
+
+    return getOffsetXY({clientX: x, clientY: y});
   }
 
   function onDoubleClick(e) {
@@ -920,7 +961,6 @@ function createPanZoom(domElement, options) {
   }
 
   function publicZoomTo(clientX, clientY, scaleMultiplier) {
-    smoothScroll.cancel();
     cancelZoomAnimation();
     return zoomByRatio(clientX, clientY, scaleMultiplier);
   }
@@ -948,8 +988,8 @@ function createPanZoom(domElement, options) {
 
   function triggerPanEnd() {
     if (panstartFired) {
-      // we should never run smooth scrolling if it was multiTouch (pinch zoom animation):
-      if (!multiTouch) smoothScroll.stop();
+      // we should never run smooth scrolling if it was multiTouch and enableTwoFingerPan disabled:
+      if (!multiTouch || enableTwoFingerPan) smoothScroll.stop();
       triggerEvent('panend');
     }
   }
@@ -1106,7 +1146,7 @@ autoRun();
  */
 module.exports = kinetic;
 
-function kinetic(getPoint, scroll, settings) {
+function kinetic(getPoint, getTarget, scroll, settings) {
   if (typeof settings !== 'object') {
     // setting could come as boolean, we should ignore it, and use an object.
     settings = {};
@@ -1178,10 +1218,10 @@ function kinetic(getPoint, scroll, settings) {
     cancelAnimationFrame(ticker);
     cancelAnimationFrame(raf);
 
-    var currentPoint = getPoint();
+    var target = getTarget();
 
-    targetX = currentPoint.x;
-    targetY = currentPoint.y;
+    targetX = target.x;
+    targetY = target.y;
     timestamp = Date.now();
 
     if (vx < -minVelocity || vx > minVelocity) {
@@ -1327,12 +1367,12 @@ function makeSvgController(svgElement, options) {
   }
 
   function getBBox() {
-    var bbox =  svgElement.getBBox();
+    var boundingBox =  svgElement.getBBox();
     return {
-      left: bbox.x,
-      top: bbox.y,
-      width: bbox.width,
-      height: bbox.height,
+      left: boundingBox.x,
+      top: boundingBox.y,
+      width: boundingBox.width,
+      height: boundingBox.height,
     };
   }
 

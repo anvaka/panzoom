@@ -15,6 +15,7 @@ var makeSvgController = require('./lib/makeSvgController.js');
 var makeDomController = require('./lib/makeDomController.js');
 
 var defaultZoomSpeed = 1;
+var defaultMoveDuration = 400; // ms
 var defaultDoubleTapZoomSpeed = 1.75;
 var doubleTapSpeedInMS = 300;
 var clickEventTimeInMS = 200;
@@ -69,6 +70,7 @@ function createPanZoom(domElement, options) {
   var beforeWheel = options.beforeWheel || noop;
   var beforeMouseDown = options.beforeMouseDown || noop;
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed;
+  var moveDuration = typeof options.moveDuration === 'number' ? options.moveDuration : defaultMoveDuration;
   var transformOrigin = parseTransformOrigin(options.transformOrigin);
   var textSelection = options.enableTextSelection ? fakeTextSelectorInterceptor : domTextSelectionInterceptor;
 
@@ -448,14 +450,14 @@ function createPanZoom(domElement, options) {
     var dx = container.width / 2 - cx;
     var dy = container.height / 2 - cy;
 
-    internalMoveBy(dx, dy, true);
+    internalMoveBy(dx, dy, true, moveDuration);
   }
 
   function smoothMoveTo(x, y){
-    internalMoveBy(x - transform.x, y - transform.y, true);
+    internalMoveBy(x - transform.x, y - transform.y, true, moveDuration);
   }
 
-  function internalMoveBy(dx, dy, smooth) {
+  function internalMoveBy(dx, dy, smooth, duration) {
     if (!smooth) {
       return moveBy(dx, dy);
     }
@@ -468,6 +470,7 @@ function createPanZoom(domElement, options) {
     var lastY = 0;
 
     moveByAnimation = animate(from, to, {
+      duration: duration,
       step: function (v) {
         moveBy(v.x - lastX, v.y - lastY);
 
@@ -1327,12 +1330,12 @@ function makeSvgController(svgElement, options) {
   }
 
   function getBBox() {
-    var bbox =  svgElement.getBBox();
+    var boundingBox =  svgElement.getBBox();
     return {
-      left: bbox.x,
-      top: bbox.y,
-      width: bbox.width,
-      height: bbox.height,
+      left: boundingBox.x,
+      top: boundingBox.y,
+      width: boundingBox.width,
+      height: boundingBox.height,
     };
   }
 

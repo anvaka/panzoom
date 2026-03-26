@@ -906,7 +906,8 @@ function createPanZoom(domElement, options) {
     zoomToAnimation = animate(from, to, {
       step: function (v) {
         zoomAbs(clientX, clientY, v.scale);
-      }
+      },
+      done: triggerZoomEnd
     });
   }
 

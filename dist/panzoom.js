@@ -907,7 +907,8 @@ function createPanZoom(domElement, options) {
     zoomToAnimation = animate(from, to, {
       step: function (v) {
         zoomAbs(clientX, clientY, v.scale);
-      }
+      },
+      done: triggerZoomEnd
     });
   }
 
@@ -1327,12 +1328,12 @@ function makeSvgController(svgElement, options) {
   }
 
   function getBBox() {
-    var bbox =  svgElement.getBBox();
+    var boundingBox =  svgElement.getBBox();
     return {
-      left: bbox.x,
-      top: bbox.y,
-      width: bbox.width,
-      height: bbox.height,
+      left: boundingBox.x,
+      top: boundingBox.y,
+      width: boundingBox.width,
+      height: boundingBox.height,
     };
   }
 

@@ -70,6 +70,7 @@ function createPanZoom(domElement, options) {
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed;
   var transformOrigin = parseTransformOrigin(options.transformOrigin);
   var textSelection = options.enableTextSelection ? fakeTextSelectorInterceptor : domTextSelectionInterceptor;
+  var onStopTouchMove = options.onStopTouchMove;
 
   validateBounds(bounds);
 
@@ -594,7 +595,7 @@ function createPanZoom(domElement, options) {
     clearPendingClickEventTimeout();
 
     if (e.touches.length === 1) {
-      return handleSingleFingerTouch(e, e.touches[0]);
+      return handleSingleFingerTouch(e);
     } else if (e.touches.length === 2) {
       // handleTouchMove() will care about pinch zoom.
       pinchZoomLength = getPinchZoomLength(e.touches[0], e.touches[1]);
@@ -658,6 +659,9 @@ function createPanZoom(domElement, options) {
 
   function handleTouchMove(e) {
     if (e.touches.length === 1) {
+      if(onStopTouchMove && onStopTouchMove(e)) {
+        return;
+      }
       e.stopPropagation();
       var touch = e.touches[0];
 

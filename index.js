@@ -70,6 +70,7 @@ function createPanZoom(domElement, options) {
   var speed = typeof options.zoomSpeed === 'number' ? options.zoomSpeed : defaultZoomSpeed;
   var transformOrigin = parseTransformOrigin(options.transformOrigin);
   var textSelection = options.enableTextSelection ? fakeTextSelectorInterceptor : domTextSelectionInterceptor;
+  var onStopTouchMove = options.onStopTouchMove;
 
   validateBounds(bounds);
 
@@ -658,6 +659,9 @@ function createPanZoom(domElement, options) {
 
   function handleTouchMove(e) {
     if (e.touches.length === 1) {
+      if(onStopTouchMove && onStopTouchMove(e)) {
+        return;
+      }
       e.stopPropagation();
       var touch = e.touches[0];
 

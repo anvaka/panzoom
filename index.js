@@ -50,7 +50,7 @@ function createPanZoom(domElement, options) {
   var storedCTMResult = { x: 0, y: 0 };
 
   var isDirty = false;
-  var transform = new Transform();
+  var transform = new Transform(options.initialTransform);
 
   if (panController.initTransform) {
     panController.initTransform(transform);

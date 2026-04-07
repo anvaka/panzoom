@@ -4,7 +4,7 @@
  */
 var wheel = require('wheel');
 var animate = require('amator');
-var eventify = require('ngraph.events');
+var eventify = require('ngraph.events').default;
 var kinetic = require('./lib/kinetic.js');
 var createTextSelectionInterceptor = require('./lib/makeTextSelectionInterceptor.js');
 var domTextSelectionInterceptor = createTextSelectionInterceptor();
